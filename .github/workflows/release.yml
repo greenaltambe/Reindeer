@@ -21,6 +21,16 @@ jobs:
         with:
           channel: stable
 
+      # A release must contain the real medicine database. It is git-ignored by
+      # default; to release from CI, commit assets/db/medicines.db.gz (remove it
+      # from .gitignore) after running tools/build_medicine_db.py.
+      - name: Check medicine database
+        run: |
+          if [ ! -s assets/db/medicines.db.gz ]; then
+            echo "::error::assets/db/medicines.db.gz is missing. See docs/DATA.md."
+            exit 1
+          fi
+
       - name: Install dependencies
         run: flutter pub get
 
