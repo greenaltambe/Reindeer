@@ -55,4 +55,3 @@ app.*.map.json
 /assets/db/*.db
 /_to_delete/
 /assets/db/*-journal
-/assets/db/*.gz
