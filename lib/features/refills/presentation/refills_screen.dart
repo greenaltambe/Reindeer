@@ -12,6 +12,7 @@ import 'package:reindeer/features/medications/data/plan_repository.dart';
 import 'package:reindeer/features/medications/domain/models/dose_unit.dart';
 import 'package:reindeer/features/medications/domain/models/medication_plan.dart';
 import 'package:reindeer/features/refills/data/refill_repository.dart';
+import 'package:reindeer/features/refills/presentation/buy_medicine_sheet.dart';
 import 'package:reindeer/shared/widgets/choice_tile.dart';
 import 'package:reindeer/shared/widgets/empty_state_view.dart';
 import 'package:reindeer/shared/widgets/fade_slide_in.dart';
@@ -150,16 +151,14 @@ class RefillsScreen extends ConsumerWidget {
                             ),
                             title: Text(
                               r.planName,
-                              style: const TextStyle(
+                              style: t.titleMedium?.copyWith(
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
-                            subtitle: Text(formatDayLabel(r.at, now)),
-                            trailing: Text(
-                              '+${r.doseUnit.describe(r.quantity)}',
-                              style: t.titleMedium?.copyWith(
-                                color: scheme.primary,
-                                fontWeight: FontWeight.bold,
+                            subtitle: Text(
+                              '${formatDayLabel(r.at, now)} · +${formatAmount(r.quantity)} ${r.doseUnit.label}',
+                              style: t.bodySmall?.copyWith(
+                                color: scheme.outline,
                               ),
                             ),
                           ),
@@ -252,9 +251,12 @@ class _StockForecastCard extends ConsumerWidget {
                         ),
                       ),
                       if (plan.composition.isNotEmpty)
-                        Text(
-                          plan.composition,
-                          style: t.bodySmall?.copyWith(color: scheme.outline),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text(
+                            plan.composition,
+                            style: t.bodySmall?.copyWith(color: scheme.outline),
+                          ),
                         ),
                     ],
                   ),
@@ -283,45 +285,20 @@ class _StockForecastCard extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: AppSpacing.sm),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          Text(
-                            stock != null ? formatAmount(stock) : '--',
-                            style: t.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            plan.doseUnit.label,
-                            style: t.titleSmall?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Text(
-                        '${tr('Daily usage')}: ${plan.doseUnit.describe(plan.averageDailyAmount)}${projectedDate != null ? ' · ${tr('Ends')} ${formatDayLabel(projectedDate, now)}' : ''}',
-                        style: t.bodySmall?.copyWith(color: scheme.outline),
-                      ),
-                    ],
-                  ),
-                ),
-                FilledButton.tonalIcon(
-                  onPressed: () => _showRefillModal(context, ref),
-                  icon: const Icon(Icons.add, size: 18),
-                  label: Text(tr('I bought more')),
-                ),
-              ],
+            // Uncluttered, prominent stock count
+            Text(
+              stock != null
+                  ? '${formatAmount(stock)} ${plan.doseUnit.label}'
+                  : '-- ${plan.doseUnit.label}',
+              style: t.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 2),
+            // Daily usage and run-out projection on its own calm line
+            Text(
+              '${tr('Daily usage')}: ${plan.doseUnit.describe(plan.averageDailyAmount)}${projectedDate != null ? ' · ${tr('Ends')} ${formatDayLabel(projectedDate, now)}' : ''}',
+              style: t.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
             ),
             if (days != null && days > 0) ...[
               const SizedBox(height: 10),
@@ -331,40 +308,80 @@ class _StockForecastCard extends ConsumerWidget {
                   value: (days / 30.0).clamp(0.04, 1.0),
                   backgroundColor: scheme.surfaceContainerHighest,
                   color: statusColor,
-                  minHeight: 5,
+                  minHeight: 6,
                 ),
               ),
             ],
+            const SizedBox(height: AppSpacing.md),
+            // Clear, spacious action buttons without text truncation
+            Row(
+              children: [
+                Expanded(
+                  flex: 6,
+                  child: FilledButton.tonalIcon(
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 10,
+                      ),
+                      minimumSize: const Size.fromHeight(46),
+                    ),
+                    onPressed: () => _showRefillModal(context, ref),
+                    icon: const Icon(Icons.add, size: 18),
+                    label: Text(
+                      tr('I bought more'),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.xs),
+                Expanded(
+                  flex: 5,
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 10,
+                      ),
+                      minimumSize: const Size.fromHeight(46),
+                    ),
+                    onPressed: () =>
+                        showBuyMedicineOptionsSheet(context, plan: plan),
+                    icon: const Icon(Icons.shopping_bag_outlined, size: 18),
+                    label: Text(
+                      tr('Buy online'),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+              ],
+            ),
             if (plan.composition.isNotEmpty) ...[
               const SizedBox(height: 8),
               InkWell(
                 borderRadius: BorderRadius.circular(6),
-                onTap: () {
-                  context.showSnackBar(
-                    trf(
-                      'Jan Aushadhi generic: {n} is available at PMBJP stores for savings.',
-                      {'n': plan.composition},
-                    ),
-                  );
-                },
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.savings_outlined,
-                      size: 14,
-                      color: scheme.primary,
-                    ),
-                    const SizedBox(width: 4),
-                    Flexible(
-                      child: Text(
-                        'Jan Aushadhi: ${plan.composition}',
-                        style: t.labelSmall?.copyWith(color: scheme.primary),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                onTap: () => showBuyMedicineOptionsSheet(context, plan: plan),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.savings_outlined,
+                        size: 14,
+                        color: scheme.primary,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          'Jan Aushadhi: ${plan.composition} (tap to find store)',
+                          style: t.labelSmall?.copyWith(color: scheme.primary),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],

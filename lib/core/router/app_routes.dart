@@ -17,6 +17,7 @@ abstract final class AppRoutes {
   static const String add = '/add';
   static const String addDetails = '/add/details';
   static const String prescriptionChange = '/medicines/doctor-change';
+  static const String scanPrescription = '/medicines/scan-prescription';
   static const String doctorReport = '/reports/doctor';
   static const String onboarding = '/onboarding';
 }

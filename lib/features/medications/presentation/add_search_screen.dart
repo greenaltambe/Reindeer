@@ -140,6 +140,90 @@ class _AddSearchScreenState extends ConsumerState<AddSearchScreen> {
   }
 
   Future<void> _scan() async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.xs,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                tr('What would you like to scan?'),
+                style: context.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              ListTile(
+                shape: RoundedRectangleBorder(
+                  side: BorderSide(color: context.colorScheme.outlineVariant),
+                  borderRadius: AppSpacing.borderRadiusMd,
+                ),
+                leading: CircleAvatar(
+                  backgroundColor: context.colorScheme.primaryContainer,
+                  child: Icon(
+                    Icons.document_scanner_outlined,
+                    color: context.colorScheme.primary,
+                  ),
+                ),
+                title: Text(
+                  tr('Doctor\'s Prescription'),
+                  style: context.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                subtitle: Text(
+                  tr('Scan full prescription slip with multiple medicines'),
+                ),
+                onTap: () => Navigator.pop(ctx, 'prescription'),
+              ),
+              const SizedBox(height: 10),
+              ListTile(
+                shape: RoundedRectangleBorder(
+                  side: BorderSide(color: context.colorScheme.outlineVariant),
+                  borderRadius: AppSpacing.borderRadiusMd,
+                ),
+                leading: CircleAvatar(
+                  backgroundColor:
+                      context.colorScheme.surfaceContainerHighest,
+                  child: Icon(
+                    Icons.medication_outlined,
+                    color: context.colorScheme.onSurface,
+                  ),
+                ),
+                title: Text(
+                  tr('Medicine Strip or Box'),
+                  style: context.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                subtitle: Text(tr('Take a photo of a single medicine package')),
+                onTap: () => Navigator.pop(ctx, 'strip'),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (choice == 'prescription') {
+      if (mounted) context.push(AppRoutes.scanPrescription);
+      return;
+    } else if (choice != 'strip') {
+      return;
+    }
+
+    if (!mounted) return;
     final source = await showModalBottomSheet<ScanSource>(
       context: context,
       showDragHandle: true,
@@ -267,7 +351,7 @@ class _AddSearchScreenState extends ConsumerState<AddSearchScreen> {
                       onPressed: _toggleVoice,
                     ),
                     IconButton(
-                      tooltip: tr('Scan a strip or bottle'),
+                      tooltip: tr('Scan prescription or strip'),
                       icon: const Icon(Icons.photo_camera_outlined),
                       onPressed: _scanning ? null : _scan,
                     ),

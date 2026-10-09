@@ -34,6 +34,7 @@ class _PrescriptionChangeScreenState
   final Map<int, Map<DaySlot, double>> _editedAmounts = {};
   final Map<int, MealTiming> _editedTiming = {};
   final Set<int> _stoppedPlanIds = {};
+  final Set<int> _expandedPlanIds = {};
   final TextEditingController _reasonController = TextEditingController(
     text: 'Doctor visit adjustment',
   );
@@ -121,13 +122,18 @@ class _PrescriptionChangeScreenState
         ],
         const SizedBox(height: AppSpacing.sm),
         OutlinedButton.icon(
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size.fromHeight(48),
+          ),
           onPressed: () => context.push(AppRoutes.add),
           icon: const Icon(Icons.add),
           label: Text(tr('Add new medicine prescribed by doctor')),
         ),
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: AppSpacing.md),
         FilledButton.icon(
-          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(50)),
+          style: FilledButton.styleFrom(
+            minimumSize: const Size.fromHeight(52),
+          ),
           onPressed: () => setState(() => _reviewMode = true),
           icon: const Icon(Icons.compare_arrows),
           label: Text(tr('Review What Changed')),
@@ -143,16 +149,37 @@ class _PrescriptionChangeScreenState
   ) {
     final planId = plan.id!;
     final isStopped = _stoppedPlanIds.contains(planId);
+    final isEdited =
+        _editedAmounts.containsKey(planId) || _editedTiming.containsKey(planId);
+    final isExpanded = _expandedPlanIds.contains(planId) || isEdited;
     final amounts = _editedAmounts[planId] ?? plan.slotAmounts;
     final timing = _editedTiming[planId] ?? plan.mealTiming;
+
+    // Build concise schedule description for collapsed view
+    final scheduleParts = <String>[];
+    for (final slot in DaySlot.values) {
+      final amt = amounts[slot] ?? 0;
+      if (amt > 0) {
+        scheduleParts.add(
+          '${slot.label}: ${formatAmount(amt)} ${plan.doseUnit.label}',
+        );
+      }
+    }
+    final timingText = timing != MealTiming.anytime ? ' (${timing.label})' : '';
+    final summaryString = scheduleParts.isEmpty
+        ? tr('No doses set')
+        : '${scheduleParts.join(" · ")}$timingText';
 
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
         side: BorderSide(
           color: isStopped
-              ? scheme.error.withValues(alpha: 0.3)
+              ? scheme.error.withValues(alpha: 0.35)
+              : isEdited
+              ? scheme.primary.withValues(alpha: 0.5)
               : scheme.outlineVariant,
+          width: isEdited ? 1.5 : 1.0,
         ),
         borderRadius: AppSpacing.borderRadiusMd,
       ),
@@ -180,9 +207,12 @@ class _PrescriptionChangeScreenState
                         ),
                       ),
                       if (plan.composition.isNotEmpty)
-                        Text(
-                          plan.composition,
-                          style: t.bodySmall?.copyWith(color: scheme.outline),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text(
+                            plan.composition,
+                            style: t.bodySmall?.copyWith(color: scheme.outline),
+                          ),
                         ),
                     ],
                   ),
@@ -219,7 +249,7 @@ class _PrescriptionChangeScreenState
             ),
             if (isStopped) ...[
               Container(
-                margin: const EdgeInsets.only(top: AppSpacing.xs),
+                margin: const EdgeInsets.only(top: AppSpacing.sm),
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10,
                   vertical: 6,
@@ -244,43 +274,82 @@ class _PrescriptionChangeScreenState
                 ),
               ),
             ] else ...[
-              const Divider(height: 24),
-              Text(
-                tr('Dose amount per time of day:'),
-                style: t.labelMedium?.copyWith(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
-              for (final slot in DaySlot.values)
-                _buildSlotRow(
-                  planId,
-                  slot,
-                  amounts[slot] ?? 0,
-                  plan.doseUnit,
-                  scheme,
-                  t,
+              const SizedBox(height: AppSpacing.xs),
+              InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: () {
+                  setState(() {
+                    if (isExpanded) {
+                      _expandedPlanIds.remove(planId);
+                    } else {
+                      _expandedPlanIds.add(planId);
+                    }
+                  });
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          summaryString,
+                          style: t.bodyMedium?.copyWith(
+                            color: isEdited
+                                ? scheme.primary
+                                : scheme.onSurfaceVariant,
+                            fontWeight: isEdited ? FontWeight.w600 : null,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Icon(
+                        isExpanded ? Icons.expand_less : Icons.expand_more,
+                        size: 20,
+                        color: scheme.primary,
+                      ),
+                    ],
+                  ),
                 ),
-              const SizedBox(height: 8),
-              Text(
-                tr('Food timing:'),
-                style: t.labelMedium?.copyWith(fontWeight: FontWeight.w600),
               ),
-              const SizedBox(height: 6),
-              Wrap(
-                spacing: 8,
-                runSpacing: 6,
-                children: [
-                  for (final m in MealTiming.values)
-                    ChoiceChip(
-                      label: Text(m.label),
-                      selected: timing == m,
-                      onSelected: (val) {
-                        if (val) {
-                          setState(() => _editedTiming[planId] = m);
-                        }
-                      },
-                    ),
-                ],
-              ),
+              if (isExpanded) ...[
+                const Divider(height: 20),
+                Text(
+                  tr('Dose amount per time of day:'),
+                  style: t.labelMedium?.copyWith(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                for (final slot in DaySlot.values)
+                  _buildSlotRow(
+                    planId,
+                    slot,
+                    amounts[slot] ?? 0,
+                    plan.doseUnit,
+                    scheme,
+                    t,
+                  ),
+                const SizedBox(height: 8),
+                Text(
+                  tr('Food timing:'),
+                  style: t.labelMedium?.copyWith(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  children: [
+                    for (final m in MealTiming.values)
+                      ChoiceChip(
+                        label: Text(m.label),
+                        selected: timing == m,
+                        onSelected: (val) {
+                          if (val) {
+                            setState(() => _editedTiming[planId] = m);
+                          }
+                        },
+                      ),
+                  ],
+                ),
+              ],
             ],
           ],
         ),
@@ -298,7 +367,7 @@ class _PrescriptionChangeScreenState
   ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
         borderRadius: BorderRadius.circular(10),
@@ -311,11 +380,12 @@ class _PrescriptionChangeScreenState
             child: Text(
               slot.label,
               style: t.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           IconButton.filledTonal(
             visualDensity: VisualDensity.compact,
-            constraints: const BoxConstraints.tightFor(width: 34, height: 34),
+            constraints: const BoxConstraints.tightFor(width: 36, height: 36),
             iconSize: 18,
             icon: const Icon(Icons.remove),
             onPressed: current > 0
@@ -327,17 +397,20 @@ class _PrescriptionChangeScreenState
                   }
                 : null,
           ),
-          Container(
-            constraints: const BoxConstraints(minWidth: 54),
-            alignment: Alignment.center,
-            child: Text(
-              '${formatAmount(current)} ${unit.label}',
-              style: t.labelLarge?.copyWith(fontWeight: FontWeight.bold),
+          ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 46),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Text(
+                '${formatAmount(current)} ${unit.label}',
+                textAlign: TextAlign.center,
+                style: t.labelLarge?.copyWith(fontWeight: FontWeight.bold),
+              ),
             ),
           ),
           IconButton.filledTonal(
             visualDensity: VisualDensity.compact,
-            constraints: const BoxConstraints.tightFor(width: 34, height: 34),
+            constraints: const BoxConstraints.tightFor(width: 36, height: 36),
             iconSize: 18,
             icon: const Icon(Icons.add),
             onPressed: () {
@@ -519,8 +592,11 @@ class _PrescriptionChangeScreenState
         );
         context.pop();
       }
-    } finally {
-      if (mounted) setState(() => _saving = false);
+    } catch (e) {
+      if (context.mounted) {
+        setState(() => _saving = false);
+        context.showSnackBar(trf('Could not save changes: {n}', {'n': '$e'}));
+      }
     }
   }
 }

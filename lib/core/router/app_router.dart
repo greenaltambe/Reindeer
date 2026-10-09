@@ -15,6 +15,7 @@ import 'package:reindeer/features/medications/presentation/add_draft.dart';
 import 'package:reindeer/features/medications/presentation/add_search_screen.dart';
 import 'package:reindeer/features/medications/presentation/medications_screen.dart';
 import 'package:reindeer/features/medications/presentation/prescription_change_screen.dart';
+import 'package:reindeer/features/medications/presentation/prescription_scan_review_screen.dart';
 import 'package:reindeer/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:reindeer/features/progress/presentation/progress_screen.dart';
 import 'package:reindeer/features/profile/presentation/profile_screen.dart';
@@ -100,6 +101,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.prescriptionChange,
         pageBuilder: (context, state) =>
             reindeerPage(state, const PrescriptionChangeScreen()),
+      ),
+      GoRoute(
+        path: AppRoutes.scanPrescription,
+        pageBuilder: (context, state) =>
+            reindeerPage(state, const PrescriptionScanReviewScreen()),
       ),
       GoRoute(
         path: AppRoutes.doctorReport,

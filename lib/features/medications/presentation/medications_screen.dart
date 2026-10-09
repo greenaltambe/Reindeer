@@ -8,6 +8,7 @@ import 'package:reindeer/core/router/app_routes.dart';
 import 'package:reindeer/core/utils/context_extensions.dart';
 import 'package:reindeer/features/medications/application/plan_actions.dart';
 import 'package:reindeer/features/medications/data/plan_repository.dart';
+import 'package:reindeer/features/refills/presentation/buy_medicine_sheet.dart';
 import 'package:reindeer/features/reminders/reminder_service.dart';
 import 'package:reindeer/features/medications/domain/models/dose_unit.dart';
 import 'package:reindeer/features/medications/domain/models/medication_plan.dart';
@@ -65,39 +66,77 @@ class MedicationsScreen extends ConsumerWidget {
               96,
             ),
             children: [
+              // Unified Doctor & Prescription Tools (Clean Material 3 Card)
               Card(
                 elevation: 0,
-                color: context.colorScheme.primaryContainer,
+                shape: RoundedRectangleBorder(
+                  side: BorderSide(color: context.colorScheme.outlineVariant),
+                  borderRadius: AppSpacing.borderRadiusMd,
+                ),
                 margin: const EdgeInsets.only(bottom: AppSpacing.md),
-                child: ListTile(
-                  leading: Icon(
-                    Icons.history_edu,
-                    color: context.colorScheme.onPrimaryContainer,
-                    size: 28,
-                  ),
-                  title: Text(
-                    tr('Doctor changed my medicines'),
-                    style: context.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: context.colorScheme.onPrimaryContainer,
+                child: Column(
+                  children: [
+                    ListTile(
+                      dense: true,
+                      leading: CircleAvatar(
+                        radius: 18,
+                        backgroundColor:
+                            context.colorScheme.tertiaryContainer,
+                        child: Icon(
+                          Icons.document_scanner_outlined,
+                          color: context.colorScheme.onTertiaryContainer,
+                          size: 18,
+                        ),
+                      ),
+                      title: Text(
+                        tr("Scan Doctor's Prescription"),
+                        style: context.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      subtitle: Text(
+                        tr('Take a photo to add all medicines at once.'),
+                        style: context.textTheme.bodySmall?.copyWith(
+                          color: context.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      trailing: const Icon(Icons.chevron_right, size: 20),
+                      onTap: () => context.push(AppRoutes.scanPrescription),
                     ),
-                  ),
-                  subtitle: Text(
-                    tr(
-                      'Review changes, keep past history safe, and update your schedule.',
+                    const Divider(height: 1),
+                    ListTile(
+                      dense: true,
+                      leading: CircleAvatar(
+                        radius: 18,
+                        backgroundColor:
+                            context.colorScheme.primaryContainer,
+                        child: Icon(
+                          Icons.history_edu,
+                          color: context.colorScheme.onPrimaryContainer,
+                          size: 18,
+                        ),
+                      ),
+                      title: Text(
+                        tr('Doctor changed my medicines'),
+                        style: context.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      subtitle: Text(
+                        tr(
+                          'Review changes, keep past history safe, and update your schedule.',
+                        ),
+                        style: context.textTheme.bodySmall?.copyWith(
+                          color: context.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      trailing: const Icon(Icons.chevron_right, size: 20),
+                      onTap: () => context.push(AppRoutes.prescriptionChange),
                     ),
-                    style: context.textTheme.bodySmall?.copyWith(
-                      color: context.colorScheme.onPrimaryContainer,
-                    ),
-                  ),
-                  trailing: Icon(
-                    Icons.arrow_forward_ios,
-                    size: 16,
-                    color: context.colorScheme.onPrimaryContainer,
-                  ),
-                  onTap: () => context.push(AppRoutes.prescriptionChange),
+                  ],
                 ),
               ),
+
               for (final (i, p) in active.indexed)
                 FadeSlideIn(
                   key: ValueKey('plan${p.id}'),
@@ -237,6 +276,10 @@ class _PlanCard extends ConsumerWidget {
                 onSelected: (v) => _onMenu(context, ref, v),
                 itemBuilder: (_) => [
                   PopupMenuItem(
+                    value: 'buy_online',
+                    child: Text(tr('Buy / Order online')),
+                  ),
+                  PopupMenuItem(
                     value: 'refill',
                     child: Text(tr('Refill / update stock')),
                   ),
@@ -291,6 +334,8 @@ class _PlanCard extends ConsumerWidget {
   ) async {
     final actions = ref.read(planActionsProvider);
     switch (value) {
+      case 'buy_online':
+        showBuyMedicineOptionsSheet(context, plan: plan);
       case 'refill':
         final qty = await _askRefill(context);
         if (qty != null) await actions.refill(plan, qty);

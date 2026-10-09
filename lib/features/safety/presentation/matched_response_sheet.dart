@@ -9,6 +9,7 @@ import 'package:reindeer/features/adherence/domain/dose_timeline.dart';
 import 'package:reindeer/features/adherence/domain/models/miss_reason.dart';
 import 'package:reindeer/features/medications/application/plan_actions.dart';
 import 'package:reindeer/features/medications/domain/models/dose_unit.dart';
+import 'package:reindeer/features/refills/presentation/buy_medicine_sheet.dart';
 
 /// Shows the matched barrier-aware response for the selected missed dose reason.
 Future<void> showMatchedResponseSheet({
@@ -139,46 +140,69 @@ class _MatchedResponseViewState extends ConsumerState<_MatchedResponseView> {
             ),
           ),
           const SizedBox(height: AppSpacing.md),
-          FilledButton.icon(
-            style: FilledButton.styleFrom(
-              minimumSize: const Size.fromHeight(48),
-            ),
-            icon: const Icon(Icons.add_shopping_cart),
-            label: Text(tr('I bought more')),
-            onPressed: () async {
-              final qty = await _askRefillQuantity(context, plan.packQty);
-              if (qty != null && context.mounted) {
-                await ref.read(planActionsProvider).refill(plan, qty);
-                if (context.mounted) {
-                  context.showSnackBar(
-                    trf('Added {n} to stock', {'n': formatAmount(qty)}),
-                  );
-                }
-              }
-            },
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                  ),
+                  icon: const Icon(Icons.shopping_bag_outlined),
+                  label: Text(tr('Order online')),
+                  onPressed: () =>
+                      showBuyMedicineOptionsSheet(context, plan: plan),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                  ),
+                  icon: const Icon(Icons.add_shopping_cart),
+                  label: Text(tr('I bought more')),
+                  onPressed: () async {
+                    final qty = await _askRefillQuantity(context, plan.packQty);
+                    if (qty != null && context.mounted) {
+                      await ref.read(planActionsProvider).refill(plan, qty);
+                      if (context.mounted) {
+                        context.showSnackBar(
+                          trf('Added {n} to stock', {'n': formatAmount(qty)}),
+                        );
+                      }
+                    }
+                  },
+                ),
+              ),
+            ],
           ),
           if (plan.composition.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.sm),
             Card(
               margin: EdgeInsets.zero,
               color: scheme.surfaceContainerHighest,
-              child: Padding(
-                padding: AppSpacing.cardPadding,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(Icons.savings_outlined, size: 20),
-                    const SizedBox(width: AppSpacing.xs),
-                    Expanded(
-                      child: Text(
-                        trf(
-                          'Generic option: Ask your chemist for Jan Aushadhi generic {n} which can cost 50-80% less.',
-                          {'n': plan.composition},
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () => showBuyMedicineOptionsSheet(context, plan: plan),
+                child: Padding(
+                  padding: AppSpacing.cardPadding,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.savings_outlined, size: 20),
+                      const SizedBox(width: AppSpacing.xs),
+                      Expanded(
+                        child: Text(
+                          trf(
+                            'Generic option: Ask your chemist for Jan Aushadhi generic {n} which can cost 50-80% less.',
+                            {'n': plan.composition},
+                          ),
+                          style: t.bodySmall,
                         ),
-                        style: t.bodySmall,
                       ),
-                    ),
-                  ],
+                      const Icon(Icons.chevron_right, size: 20),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -201,11 +225,10 @@ class _MatchedResponseViewState extends ConsumerState<_MatchedResponseView> {
                 Expanded(
                   child: Text(
                     tr(
-                      'Tell your doctor: do not stop long-term medicines suddenly.',
+                      'Please consult your doctor before stopping this medicine completely. Note what you felt so they can adjust the dosage.',
                     ),
                     style: t.bodyMedium?.copyWith(
                       color: scheme.onErrorContainer,
-                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
@@ -213,16 +236,12 @@ class _MatchedResponseViewState extends ConsumerState<_MatchedResponseView> {
             ),
           ),
           const SizedBox(height: AppSpacing.md),
-          Text(tr('Note for doctor (optional)'), style: t.titleSmall),
-          const SizedBox(height: AppSpacing.xs),
           TextField(
             controller: _noteController,
-            maxLines: 2,
+            maxLines: 3,
             decoration: InputDecoration(
-              hintText: 'e.g. Felt dizzy, nausea, swelling...',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
+              labelText: tr('What symptoms or discomfort did you feel?'),
+              hintText: tr('e.g. Nausea, headache, dizziness...'),
             ),
           ),
           const SizedBox(height: AppSpacing.xs),
@@ -308,6 +327,15 @@ class _MatchedResponseViewState extends ConsumerState<_MatchedResponseView> {
                 ],
               ],
             ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(48),
+            ),
+            icon: const Icon(Icons.savings_outlined),
+            label: Text(tr('Find Jan Aushadhi generic store')),
+            onPressed: () => showBuyMedicineOptionsSheet(context, plan: plan),
           ),
         ];
 
