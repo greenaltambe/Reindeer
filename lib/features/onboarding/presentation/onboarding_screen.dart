@@ -6,6 +6,8 @@ import 'package:reindeer/core/database/app_database.dart';
 import 'package:reindeer/core/router/app_routes.dart';
 import 'package:reindeer/core/utils/context_extensions.dart';
 import 'package:reindeer/core/utils/date_time_utils.dart';
+import 'package:reindeer/features/care/application/care_sync.dart';
+import 'package:reindeer/features/care/domain/care_models.dart';
 import 'package:reindeer/features/conditions/presentation/condition_picker.dart';
 import 'package:reindeer/features/profile/data/profile_repository.dart';
 import 'package:reindeer/features/reminders/reminder_service.dart';
@@ -13,13 +15,14 @@ import 'package:reindeer/features/settings/data/settings_repository.dart';
 import 'package:reindeer/features/settings/domain/meal_anchors.dart';
 import 'package:reindeer/shared/widgets/reindeer_mark.dart';
 import 'package:reindeer/shared/widgets/fade_slide_in.dart';
+import 'package:reindeer/shared/widgets/choice_tile.dart';
 import 'package:reindeer/shared/widgets/step_scaffold.dart';
 import 'package:reindeer/core/i18n/strings.dart';
 import 'package:reindeer/shared/widgets/language_picker.dart';
 import 'package:reindeer/shared/widgets/year_wheel_picker.dart';
 
-/// First-run flow, one question per page: welcome, name, birth year,
-/// conditions, meal times, reminders. Only what the app really uses.
+/// First-run flow, one question per page: welcome, who the phone is for,
+/// name, birth year, conditions, meal times, reminders. Only what the app really uses.
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -28,7 +31,7 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 }
 
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
-  static const _steps = 6;
+  static const _steps = 7;
 
   int _step = 0;
   final _name = TextEditingController();
@@ -108,6 +111,25 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
   }
 
+  /// A caretaker-only phone needs none of the medicine questions: it goes
+  /// straight to entering the code from the patient's phone.
+  Future<void> _startAsCaretaker() async {
+    setState(() => _busy = true);
+    try {
+      final settings = ref.read(settingsRepositoryProvider);
+      await settings.set(keyCareMode, CareMode.caretaker.name);
+      await settings.set(SettingsRepository.keyOnboarded, '1');
+      ref.read(dataVersionProvider.notifier).bump();
+      if (!mounted) return;
+      context.go(AppRoutes.care);
+      context.push(AppRoutes.familyJoin);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _busy = false);
+      context.showSnackBar(trf('Could not finish setup: {n}', {'n': '$e'}));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = context.textTheme;
@@ -148,6 +170,38 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       1 => StepScaffold(
         stepIndex: 1,
         stepCount: _steps,
+        title: tr('How will you use Reindeer?'),
+        subtitle: tr('You can change this later.'),
+        onBack: _back,
+        onNext: _next,
+        nextEnabled: false,
+        nextLabel: tr('Choose one'),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ChoiceTile(
+              icon: Icons.medication_outlined,
+              label: tr('For my own medicines'),
+              caption: tr('Reminders on this phone'),
+              selected: false,
+              minHeight: 96,
+              onTap: _next,
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            ChoiceTile(
+              icon: Icons.volunteer_activism_outlined,
+              label: tr('To look after someone'),
+              caption: tr('Get alerts about a parent or relative'),
+              selected: false,
+              minHeight: 96,
+              onTap: _busy ? () {} : _startAsCaretaker,
+            ),
+          ],
+        ),
+      ),
+      2 => StepScaffold(
+        stepIndex: 2,
+        stepCount: _steps,
         title: tr('What should we call you?'),
         subtitle: tr('Just a first name, so your reindeer can say hello.'),
         onBack: _back,
@@ -162,8 +216,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           decoration: InputDecoration(hintText: tr('Your name')),
         ),
       ),
-      2 => StepScaffold(
-        stepIndex: 2,
+      3 => StepScaffold(
+        stepIndex: 3,
         stepCount: _steps,
         title: tr('When were you born?'),
         subtitle: tr(
@@ -208,8 +262,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           },
         ),
       ),
-      3 => StepScaffold(
-        stepIndex: 3,
+      4 => StepScaffold(
+        stepIndex: 4,
         stepCount: _steps,
         title: tr('Any health conditions?'),
         subtitle: tr('Optional. It helps suggest what each medicine is for.'),
@@ -221,8 +275,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           onChanged: (v) => setState(() => _conditions = v),
         ),
       ),
-      4 => StepScaffold(
-        stepIndex: 4,
+      5 => StepScaffold(
+        stepIndex: 5,
         stepCount: _steps,
         title: tr('When do you eat?'),
         subtitle: tr(
@@ -251,7 +305,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         ),
       ),
       _ => StepScaffold(
-        stepIndex: 5,
+        stepIndex: 6,
         stepCount: _steps,
         leading: Padding(
           padding: const EdgeInsets.only(bottom: AppSpacing.md),

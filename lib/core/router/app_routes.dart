@@ -20,4 +20,9 @@ abstract final class AppRoutes {
   static const String scanPrescription = '/medicines/scan-prescription';
   static const String doctorReport = '/reports/doctor';
   static const String onboarding = '/onboarding';
+  static const String care = '/care';
+  static const String family = '/family';
+  static const String familyAdd = '/family/add';
+  static const String familyJoin = '/family/join';
+  static const String familyAsk = '/family/ask';
 }

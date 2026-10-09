@@ -7,6 +7,7 @@ import 'package:reindeer/core/i18n/strings.dart';
 import 'package:reindeer/core/router/app_routes.dart';
 import 'package:reindeer/core/utils/context_extensions.dart';
 import 'package:reindeer/core/utils/date_time_utils.dart';
+import 'package:reindeer/features/care/presentation/ask_for_medicines_flow.dart';
 import 'package:reindeer/features/medications/application/plan_actions.dart';
 import 'package:reindeer/features/medications/data/plan_repository.dart';
 import 'package:reindeer/features/medications/domain/models/dose_unit.dart';
@@ -63,6 +64,7 @@ class RefillsScreen extends ConsumerWidget {
               96,
             ),
             children: [
+              const AskCaretakerCard(),
               // Clean top summary alert
               if (lowStockList.isNotEmpty)
                 Padding(

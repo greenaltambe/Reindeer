@@ -5,6 +5,10 @@ import 'package:reindeer/core/constants/app_constants.dart';
 import 'package:reindeer/core/database/app_database.dart';
 import 'package:reindeer/core/i18n/language_provider.dart';
 import 'package:reindeer/core/router/app_router.dart';
+import 'package:reindeer/core/router/app_routes.dart';
+import 'package:reindeer/features/care/application/care_messaging.dart';
+import 'package:reindeer/features/care/application/care_providers.dart';
+import 'package:reindeer/features/care/data/care_backend.dart';
 import 'package:reindeer/core/theme/app_theme.dart';
 import 'package:reindeer/core/theme/theme_provider.dart';
 import 'package:reindeer/features/reminders/reminder_service.dart';
@@ -28,14 +32,43 @@ class _ReindeerAppState extends ConsumerState<ReindeerApp>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     notificationActionTick.addListener(_onNotificationAction);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _refresh());
+    notificationRouteRequest.addListener(_onRouteRequest);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refresh();
+      _startFamilyAlerts();
+    });
   }
 
   void _onNotificationAction() => ref.read(dataVersionProvider.notifier).bump();
 
+  void _onRouteRequest() {
+    final route = notificationRouteRequest.value;
+    if (route == null) return;
+    notificationRouteRequest.value = null;
+    _open(route);
+  }
+
+  void _open(String route) {
+    final router = ref.read(appRouterProvider);
+    // Already there (for example a caretaker-only phone opening on Family).
+    if (router.routerDelegate.currentConfiguration.uri.path == route) return;
+    if (route == AppRoutes.today) {
+      router.go(route);
+    } else {
+      router.push(route);
+    }
+  }
+
+  /// Listens for family alerts once this phone takes part in sharing.
+  void _startFamilyAlerts() {
+    if (ref.read(careUidProvider) == null) return;
+    CareMessaging.start(_open);
+  }
+
   @override
   void dispose() {
     notificationActionTick.removeListener(_onNotificationAction);
+    notificationRouteRequest.removeListener(_onRouteRequest);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -58,6 +91,11 @@ class _ReindeerAppState extends ConsumerState<ReindeerApp>
   @override
   Widget build(BuildContext context) {
     ref.watch(widgetSyncProvider);
+    ref.watch(careWatcherProvider);
+    ref.listen<String?>(careUidProvider, (_, uid) {
+      if (uid != null) _startFamilyAlerts();
+    });
+    ref.listen(languageProvider, (_, _) => CareBackend.registerDevice());
     final language = ref.watch(languageProvider);
     final router = ref.watch(appRouterProvider);
     final themeMode = ref.watch(themeModeProvider);

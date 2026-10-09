@@ -40,6 +40,13 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- Family alerts (Firebase Cloud Messaging) shown while the app is closed. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="care_alerts" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notification" />
         <receiver android:name=".ReindeerWidgetProvider" android:exported="true" android:label="Reindeer doses">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />

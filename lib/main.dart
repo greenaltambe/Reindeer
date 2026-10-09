@@ -13,6 +13,11 @@ import 'package:reindeer/core/theme/app_theme.dart';
 import 'package:reindeer/core/theme/theme_provider.dart';
 import 'package:reindeer/core/utils/app_logger.dart';
 import 'package:reindeer/features/adherence/data/dose_log_repository.dart';
+import 'package:reindeer/features/care/application/care_messaging.dart';
+import 'package:reindeer/features/care/application/care_providers.dart';
+import 'package:reindeer/features/care/application/care_sync.dart';
+import 'package:reindeer/features/care/data/care_backend.dart';
+import 'package:reindeer/features/care/domain/care_models.dart';
 import 'package:reindeer/features/medications/data/plan_repository.dart';
 import 'package:reindeer/features/reminders/reminder_service.dart';
 import 'package:reindeer/features/settings/data/settings_repository.dart';
@@ -92,6 +97,14 @@ class _BootAppState extends State<BootApp> {
         // The app is still useful without reminders; Settings shows their health.
         AppLogger.error('Reminder set-up failed', error: e, stackTrace: s);
       }
+      // Local only: nothing is sent until the person sets up family sharing.
+      await CareBackend.init();
+      try {
+        await CareMessaging.createChannels();
+      } catch (_) {
+        // Family alerts fall back to Android's default channel.
+      }
+      final careMode = CareMode.fromName(await settings.get(keyCareMode));
       final onboarded = await settings.isOnboarded();
       final savedTheme = await settings.get(SettingsRepository.keyTheme);
       final themeMode = ThemeMode.values.firstWhere(
@@ -105,6 +118,7 @@ class _BootAppState extends State<BootApp> {
           medicineDatabaseProvider.overrideWithValue(medicineDb),
           appDatabaseProvider.overrideWithValue(appDb),
           initialOnboardedProvider.overrideWithValue(onboarded),
+          initialCareModeProvider.overrideWithValue(careMode),
           initialThemeModeProvider.overrideWithValue(themeMode),
         ];
       });

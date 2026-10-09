@@ -11,6 +11,7 @@ import 'package:reindeer/core/i18n/strings.dart';
 import 'package:reindeer/core/platform/system_channel.dart';
 import 'package:reindeer/core/utils/app_logger.dart';
 import 'package:reindeer/core/utils/date_time_utils.dart';
+import 'package:reindeer/features/care/application/care_sync.dart';
 import 'package:reindeer/features/adherence/data/dose_log_repository.dart';
 import 'package:reindeer/features/adherence/data/miss_reason_repository.dart';
 import 'package:reindeer/features/adherence/domain/models/dose_log.dart';
@@ -145,13 +146,31 @@ Future<String> initTimezone({String? stored}) async {
   return id;
 }
 
+/// Payload prefix of notifications that open a screen when tapped.
+const String routePayloadPrefix = 'route:';
+
+/// Set when a notification asking to open a screen was tapped while the app
+/// runs; the app navigates and clears it.
+final ValueNotifier<String?> notificationRouteRequest = ValueNotifier<String?>(
+  null,
+);
+
 /// Schedules and manages dose reminders.
 class ReminderService {
-  ReminderService(this._plans, this._logs, this._settings);
+  ReminderService(
+    this._plans,
+    this._logs,
+    this._settings, {
+    this.afterReschedule,
+  });
 
   final PlanRepository _plans;
   final DoseLogRepository _logs;
   final SettingsRepository _settings;
+
+  /// Runs after every [rescheduleAll]: doses changed, so anything mirroring
+  /// them (the caretaker sync) refreshes too.
+  final void Function()? afterReschedule;
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
 
@@ -170,6 +189,13 @@ class ReminderService {
     await _plugin.initialize(
       settings: _initSettings,
       onDidReceiveNotificationResponse: (response) async {
+        final payload = response.payload ?? '';
+        if (payload.startsWith(routePayloadPrefix)) {
+          notificationRouteRequest.value = payload.substring(
+            routePayloadPrefix.length,
+          );
+          return;
+        }
         // The app is open: handle the button here (the database is shared).
         await _handleResponse(response, closeDb: false);
         notificationActionTick.value++;
@@ -270,17 +296,17 @@ class ReminderService {
   /// Safe to call often: on start-up, on resume, and after any plan change.
   Future<void> rescheduleAll() {
     // One run at a time: overlapping runs could cancel each other's work.
-    final next = _queue.then((_) => _rescheduleAllNow()).catchError((
-      Object e,
-      StackTrace st,
-    ) {
-      AppLogger.error('Rescheduling failed', error: e, stackTrace: st);
-      lastReport = ScheduleReport(
-        failed: 1,
-        lastError: '$e',
-        at: DateTime.now(),
-      );
-    });
+    final next = _queue
+        .then((_) => _rescheduleAllNow())
+        .whenComplete(() => afterReschedule?.call())
+        .catchError((Object e, StackTrace st) {
+          AppLogger.error('Rescheduling failed', error: e, stackTrace: st);
+          lastReport = ScheduleReport(
+            failed: 1,
+            lastError: '$e',
+            at: DateTime.now(),
+          );
+        });
     _queue = next;
     return next;
   }
@@ -442,6 +468,7 @@ final reminderServiceProvider = Provider<ReminderService>(
     ref.watch(planRepositoryProvider),
     ref.watch(doseLogRepositoryProvider),
     ref.watch(settingsRepositoryProvider),
+    afterReschedule: () => CareSync.requestSoon(ref.read(appDatabaseProvider)),
   ),
 );
 
@@ -507,6 +534,14 @@ Future<void> _handleResponse(
           note: 'Skipped from notification',
           at: now,
         );
+      }
+      // Tell caretakers. In the background isolate this must finish before
+      // the database closes; in the app it is folded into the next upload.
+      if (closeDb) {
+        await CareSync.run(db)
+            .timeout(const Duration(seconds: 10), onTimeout: () {});
+      } else {
+        CareSync.requestSoon(db);
       }
     } else if (action == _actionSnooze) {
       await initTimezone(

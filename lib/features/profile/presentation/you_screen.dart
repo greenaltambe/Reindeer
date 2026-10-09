@@ -6,6 +6,8 @@ import 'package:reindeer/core/database/app_database.dart';
 import 'package:reindeer/core/router/app_routes.dart';
 import 'package:reindeer/core/utils/context_extensions.dart';
 import 'package:reindeer/core/utils/date_time_utils.dart';
+import 'package:reindeer/features/care/application/care_providers.dart';
+import 'package:reindeer/features/care/domain/care_models.dart';
 import 'package:reindeer/features/profile/data/profile_repository.dart';
 import 'package:reindeer/features/medications/domain/models/dose_unit.dart';
 import 'package:reindeer/features/reminders/reminder_service.dart';
@@ -166,6 +168,8 @@ class YouScreen extends ConsumerWidget {
               ),
             ),
           ),
+          const SizedBox(height: AppSpacing.sm),
+          const FadeSlideIn(index: 1, child: _FamilyCard()),
           SectionTitle(tr('Health conditions')),
           FadeSlideIn(
             index: 1,
@@ -374,6 +378,40 @@ class YouScreen extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Entry to family sharing; says in one line what is set up.
+class _FamilyCard extends ConsumerWidget {
+  const _FamilyCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final caretakers =
+        ref.watch(myCaretakersProvider).value ?? const <CareLink>[];
+    final patients = ref.watch(myPatientsProvider).value ?? const <CareLink>[];
+    final String subtitle;
+    if (caretakers.isNotEmpty) {
+      subtitle = trf('{n} gets an alert if you miss a dose', {
+        'n': caretakers.map((c) => c.caretakerLabel).join(', '),
+      });
+    } else if (patients.isNotEmpty) {
+      subtitle = trf('You look after {n}', {
+        'n': patients.map((p) => p.patientLabel).join(', '),
+      });
+    } else {
+      subtitle = tr('Let family know if you miss a medicine');
+    }
+    return Card(
+      margin: EdgeInsets.zero,
+      child: ListTile(
+        leading: const Icon(Icons.family_restroom),
+        title: Text(tr('Family & caretakers')),
+        subtitle: Text(subtitle),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => context.push(AppRoutes.family),
       ),
     );
   }

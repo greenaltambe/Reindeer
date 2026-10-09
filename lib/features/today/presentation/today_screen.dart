@@ -11,6 +11,8 @@ import 'package:reindeer/features/adherence/application/dose_actions.dart';
 import 'package:reindeer/features/adherence/application/timeline_providers.dart';
 import 'package:reindeer/features/adherence/domain/dose_timeline.dart';
 import 'package:reindeer/features/adherence/domain/models/dose_log.dart';
+import 'package:reindeer/features/care/presentation/care_home_screen.dart';
+import 'package:reindeer/features/care/presentation/help_sheet.dart';
 import 'package:reindeer/features/health/domain/measure_type.dart';
 import 'package:reindeer/features/health/presentation/health_screen.dart';
 import 'package:reindeer/features/medications/data/plan_repository.dart';
@@ -181,6 +183,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                     label: Text(tr('Today')),
                   ),
           ),
+          const HelpButton(),
           IconButton(
             tooltip: tr('App settings'),
             onPressed: () => context.push(AppRoutes.settings),
@@ -475,6 +478,7 @@ class _DayViewState extends ConsumerState<_DayView> {
           ),
           children: [
             if (isToday) const _PermissionBanner(),
+            if (isToday) const FamilyTodayStrip(),
             if (isToday) const _TbBanner(),
             if (low.isNotEmpty)
               FadeSlideIn(

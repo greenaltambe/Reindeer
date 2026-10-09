@@ -6,6 +6,14 @@ import 'package:reindeer/features/tb/presentation/tb_setup_screen.dart';
 import 'package:reindeer/core/router/app_routes.dart';
 import 'package:reindeer/core/router/transitions.dart';
 import 'package:reindeer/features/allergy/presentation/allergy_screen.dart';
+import 'package:reindeer/features/care/application/care_providers.dart';
+import 'package:reindeer/features/care/domain/care_models.dart';
+import 'package:reindeer/features/care/presentation/add_caretaker_flow.dart';
+import 'package:reindeer/features/care/presentation/ask_for_medicines_flow.dart';
+import 'package:reindeer/features/care/presentation/care_home_screen.dart';
+import 'package:reindeer/features/care/presentation/family_screen.dart';
+import 'package:reindeer/features/care/presentation/join_as_caretaker_flow.dart';
+import 'package:reindeer/features/care/presentation/medicine_request_screen.dart';
 import 'package:reindeer/features/health/domain/measure_type.dart';
 import 'package:reindeer/features/health/presentation/add_measurement_screen.dart';
 import 'package:reindeer/features/health/presentation/health_screen.dart';
@@ -35,9 +43,51 @@ final initialOnboardedProvider = Provider<bool>((ref) => true);
 /// Provides the application's [GoRouter] configuration.
 final appRouterProvider = Provider<GoRouter>((ref) {
   final onboarded = ref.read(initialOnboardedProvider);
+  final caretakerOnly = ref.read(initialCareModeProvider) == CareMode.caretaker;
   return GoRouter(
-    initialLocation: onboarded ? AppRoutes.today : AppRoutes.onboarding,
+    initialLocation: !onboarded
+        ? AppRoutes.onboarding
+        : (caretakerOnly ? AppRoutes.care : AppRoutes.today),
     routes: [
+      GoRoute(
+        path: AppRoutes.care,
+        pageBuilder: (context, state) =>
+            reindeerPage(state, const CareHomeScreen()),
+        routes: [
+          GoRoute(
+            path: 'request/:uid/:id',
+            pageBuilder: (context, state) => reindeerPage(
+              state,
+              MedicineRequestScreen(
+                patientUid: state.pathParameters['uid']!,
+                requestId: state.pathParameters['id']!,
+              ),
+            ),
+          ),
+        ],
+      ),
+      GoRoute(
+        path: AppRoutes.family,
+        pageBuilder: (context, state) =>
+            reindeerPage(state, const FamilyScreen()),
+        routes: [
+          GoRoute(
+            path: 'add',
+            pageBuilder: (context, state) =>
+                reindeerPage(state, const AddCaretakerFlow()),
+          ),
+          GoRoute(
+            path: 'join',
+            pageBuilder: (context, state) =>
+                reindeerPage(state, const JoinAsCaretakerFlow()),
+          ),
+          GoRoute(
+            path: 'ask',
+            pageBuilder: (context, state) =>
+                reindeerPage(state, const AskForMedicinesFlow()),
+          ),
+        ],
+      ),
       GoRoute(
         path: AppRoutes.onboarding,
         pageBuilder: (context, state) =>

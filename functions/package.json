@@ -1,0 +1,22 @@
+{
+  "name": "reindeer-functions",
+  "description": "Caretaker alerts for Reindeer",
+  "private": true,
+  "main": "index.js",
+  "engines": {
+    "node": "22"
+  },
+  "scripts": {
+    "test": "node --test test/messages.test.js",
+    "test:rules": "cd .. && firebase emulators:exec --only firestore --project reindeer-rules-test \"$(which node) --test functions/rules-test/rules.test.js\"",
+    "deploy": "cd .. && firebase deploy --only firestore,functions"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.10.0",
+    "firebase-functions": "^7.4.0"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^6.0.0",
+    "firebase": "^13.0.0"
+  }
+}

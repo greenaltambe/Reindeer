@@ -56,3 +56,8 @@ app.*.map.json
 /_to_delete/
 /assets/db/*-journal
 /_sync/
+
+# Firebase emulators
+firestore-debug.log
+ui-debug.log
+firebase-debug.log

@@ -1,0 +1,87 @@
+rules_version = '2';
+
+// Reindeer caretaker sharing.
+//
+// Every phone signs in anonymously. A patient shares only medicine times, their
+// status and a few phone details with caretakers they linked by invite code.
+// Links are created by the `claimInvite` function, never by a client.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function me() {
+      return request.auth.uid;
+    }
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // Whether [caretaker] looks after [patient].
+    function linked(patient, caretaker) {
+      return exists(/databases/$(database)/documents/links/$(patient + '_' + caretaker));
+    }
+
+    function onlyChanges(fields) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields);
+    }
+
+    // Device token and language, used only by the functions.
+    match /users/{uid} {
+      allow read, write: if signedIn() && me() == uid;
+    }
+
+    // Short-lived 6-digit codes. Only the patient who made one can see it;
+    // caretakers redeem it through the function.
+    match /invites/{code} {
+      allow create: if signedIn()
+        && request.resource.data.patientUid == me()
+        && request.resource.data.keys().hasOnly(['patientUid', 'patientName', 'createdAt', 'expiresAt'])
+        && request.resource.data.patientName is string
+        && request.resource.data.patientName.size() <= 60;
+      allow read, delete: if signedIn() && resource.data.patientUid == me();
+    }
+
+    match /links/{linkId} {
+      allow read, delete: if signedIn()
+        && (resource.data.patientUid == me() || resource.data.caretakerUid == me());
+      allow update: if signedIn() && (
+        (resource.data.caretakerUid == me()
+          && onlyChanges(['nickname', 'caretakerName', 'caretakerPhone', 'notifyTaken', 'notifySkipped']))
+        || (resource.data.patientUid == me() && onlyChanges(['patientName']))
+      );
+    }
+
+    match /patients/{uid} {
+      allow read: if signedIn() && (me() == uid || linked(uid, me()));
+      allow write: if signedIn() && me() == uid;
+
+      match /doses/{doseId} {
+        allow read: if signedIn() && (me() == uid || linked(uid, me()));
+        allow write: if signedIn() && me() == uid;
+      }
+
+      // Help alerts, medicine requests and low battery come from the patient;
+      // "send love" and "I'm on it" come from a linked caretaker.
+      match /events/{eventId} {
+        allow read: if signedIn() && (me() == uid || linked(uid, me()));
+        allow create: if signedIn()
+          && request.resource.data.from == me()
+          && (
+            (me() == uid && request.resource.data.type in ['sos', 'request', 'battery'])
+            || (linked(uid, me()) && request.resource.data.type in ['love', 'onit'])
+          )
+          && request.resource.data.keys().hasOnly(['type', 'from', 'createdAt', 'items', 'hasPhoto', 'level']);
+      }
+
+      // Prescription photos, kept apart from events so lists stay small.
+      match /photos/{photoId} {
+        allow read: if signedIn() && (me() == uid || linked(uid, me()));
+        allow create: if signedIn() && me() == uid
+          && request.resource.data.keys().hasOnly(['data', 'createdAt'])
+          && request.resource.data.data is string
+          // Stays well under the 1 MiB document limit.
+          && request.resource.data.data.size() < 750000;
+      }
+    }
+  }
+}
