@@ -6,9 +6,13 @@ import 'package:reindeer/core/constants/app_spacing.dart';
 import 'package:reindeer/core/database/app_database.dart';
 import 'package:reindeer/core/utils/context_extensions.dart';
 import 'package:reindeer/core/utils/date_time_utils.dart';
+import 'package:reindeer/features/health/application/measure_reminder_actions.dart';
 import 'package:reindeer/features/health/data/measurement_repository.dart';
 import 'package:reindeer/features/health/domain/measure_type.dart';
+import 'package:reindeer/features/health/domain/reading_insight.dart';
+import 'package:reindeer/features/health/presentation/reading_flag_card.dart';
 import 'package:reindeer/features/health/presentation/health_screen.dart';
+import 'package:reindeer/core/i18n/strings.dart';
 
 /// Add one reading: the number(s), when, and an optional note.
 class AddMeasurementScreen extends ConsumerStatefulWidget {
@@ -29,6 +33,8 @@ class _AddMeasurementScreenState extends ConsumerState<AddMeasurementScreen> {
   String? _context;
   String? _error;
   bool _saving = false;
+  bool _remind = false;
+  int _remindMinutes = 8 * 60;
 
   MeasureType get type => widget.type;
 
@@ -70,7 +76,9 @@ class _AddMeasurementScreenState extends ConsumerState<AddMeasurementScreen> {
     }
     if (type.hasSecond && (b == null || !type.plausible(b) || b > a)) {
       setState(
-        () => _error = 'Please check the bottom number. It is usually lower than the top one.',
+        () => _error = tr(
+          'Please check the bottom number. It is usually lower than the top one.',
+        ),
       );
       return;
     }
@@ -79,25 +87,32 @@ class _AddMeasurementScreenState extends ConsumerState<AddMeasurementScreen> {
       _saving = true;
     });
     try {
-      await ref
-          .read(measurementRepositoryProvider)
-          .add(
-            Measurement(
-              type: type,
-              value: a,
-              value2: b,
-              context: _context,
-              at: _at,
-              note: _note.text.trim(),
-            ),
-          );
+      final reading = Measurement(
+        type: type,
+        value: a,
+        value2: b,
+        context: _context,
+        at: _at,
+        note: _note.text.trim(),
+      );
+      final repo = ref.read(measurementRepositoryProvider);
+      // Oldest first, for comparing with the person's own recent readings.
+      final earlier = (await repo.forType(type, limit: 12)).reversed.toList();
+      await repo.add(reading);
       ref.read(dataVersionProvider.notifier).bump();
+      final flag = assessReading(reading, earlier);
+      if (_remind) {
+        await ref
+            .read(measureReminderActionsProvider)
+            .set(type, MeasureReminder(minutes: _remindMinutes));
+      }
+      if (flag != null && mounted) await showReadingFlag(context, flag);
       if (mounted) context.pop();
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _saving = false;
-        _error = 'Could not save: $e';
+        _error = trf('Could not save: {n}', {'n': '$e'});
       });
     }
   }
@@ -112,7 +127,9 @@ class _AddMeasurementScreenState extends ConsumerState<AddMeasurementScreen> {
       FilteringTextInputFormatter.allow(RegExp(decimal ? r'[0-9.]' : r'[0-9]')),
     ];
     return Scaffold(
-      appBar: AppBar(title: Text('Add ${type.label.toLowerCase()}')),
+      appBar: AppBar(
+        title: Text(trf('Add {n}', {'n': type.label.toLowerCase()})),
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(
           AppSpacing.md,
@@ -168,14 +185,72 @@ class _AddMeasurementScreenState extends ConsumerState<AddMeasurementScreen> {
               title: Text(
                 '${formatDayLabel(_at, DateTime.now())}, ${formatTime(_at)}',
               ),
-              trailing: const Text('Change'),
+              trailing: Text(tr('Change')),
               onTap: _pickWhen,
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
           TextField(
             controller: _note,
-            decoration: const InputDecoration(labelText: 'Note (optional)'),
+            decoration: InputDecoration(labelText: tr('Note (optional)')),
+          ),
+          Builder(
+            builder: (context) {
+              final existing = ref.watch(measureReminderProvider(type));
+              // Only offer a reminder when none is set yet.
+              if (!existing.hasValue || existing.value != null) {
+                return const SizedBox.shrink();
+              }
+              return Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.md),
+                child: Card(
+                  margin: EdgeInsets.zero,
+                  child: Column(
+                    children: [
+                      SwitchListTile(
+                        secondary: const Icon(
+                          Icons.notifications_active_outlined,
+                        ),
+                        title: Text(tr('Remind me every day')),
+                        subtitle: Text(
+                          trf('To check your {n}', {
+                            'n': type.label.toLowerCase(),
+                          }),
+                        ),
+                        value: _remind,
+                        onChanged: (v) => setState(() => _remind = v),
+                      ),
+                      AnimatedSize(
+                        duration: const Duration(milliseconds: 220),
+                        curve: Curves.easeOutCubic,
+                        child: _remind
+                            ? ListTile(
+                                leading: const Icon(Icons.schedule),
+                                title: Text(formatMinutes(_remindMinutes)),
+                                trailing: Text(tr('Change')),
+                                onTap: () async {
+                                  final p = await showTimePicker(
+                                    context: context,
+                                    initialTime: TimeOfDay(
+                                      hour: _remindMinutes ~/ 60,
+                                      minute: _remindMinutes % 60,
+                                    ),
+                                  );
+                                  if (p != null) {
+                                    setState(
+                                      () => _remindMinutes =
+                                          p.hour * 60 + p.minute,
+                                    );
+                                  }
+                                },
+                              )
+                            : const SizedBox(width: double.infinity),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
           if (_error != null)
             Padding(
@@ -191,7 +266,7 @@ class _AddMeasurementScreenState extends ConsumerState<AddMeasurementScreen> {
               minimumSize: const Size.fromHeight(54),
             ),
             onPressed: _saving ? null : _save,
-            child: const Text('Save reading'),
+            child: Text(tr('Save reading')),
           ),
         ],
       ),

@@ -1,68 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:reindeer/core/constants/app_constants.dart';
 import 'package:reindeer/core/constants/app_spacing.dart';
 import 'package:reindeer/core/database/app_database.dart';
-import 'package:reindeer/core/router/app_routes.dart';
+import 'package:reindeer/core/platform/system_channel.dart';
 import 'package:reindeer/core/theme/theme_provider.dart';
 import 'package:reindeer/core/utils/context_extensions.dart';
-import 'package:reindeer/core/utils/date_time_utils.dart';
-import 'package:reindeer/features/profile/data/profile_repository.dart';
+import 'package:reindeer/features/backup/data/backup_service.dart';
+import 'package:reindeer/features/backup/domain/backup_codec.dart';
 import 'package:reindeer/features/reminders/reminder_service.dart';
 import 'package:reindeer/features/settings/data/settings_repository.dart';
-import 'package:reindeer/features/settings/domain/meal_anchors.dart';
 import 'package:reindeer/shared/widgets/choice_tile.dart';
 import 'package:reindeer/shared/widgets/reindeer_mark.dart';
+import 'package:reindeer/core/i18n/strings.dart';
+import 'package:reindeer/shared/widgets/language_picker.dart';
 
-/// Meal times, reminder health check, appearance and about.
+/// App settings: reminder health check, appearance and about. Personal
+/// details and meal times live on the You tab.
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
-
-  Future<void> _pickMeal(
-    BuildContext context,
-    WidgetRef ref,
-    MealAnchors anchors,
-    String which,
-  ) async {
-    final current = switch (which) {
-      'breakfast' => anchors.breakfast,
-      'lunch' => anchors.lunch,
-      _ => anchors.dinner,
-    };
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay(hour: current ~/ 60, minute: current % 60),
-      helpText: 'When do you usually have $which?',
-    );
-    if (picked == null) return;
-    final minutes = picked.hour * 60 + picked.minute;
-    final next = switch (which) {
-      'breakfast' => anchors.copyWith(breakfast: minutes),
-      'lunch' => anchors.copyWith(lunch: minutes),
-      _ => anchors.copyWith(dinner: minutes),
-    };
-    await ref.read(settingsRepositoryProvider).saveMealAnchors(next);
-    ref.read(dataVersionProvider.notifier).bump();
-    // Doses are tied to meals, so every reminder moves.
-    await ref.read(reminderServiceProvider).rescheduleAll();
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
-    final anchors = ref.watch(mealAnchorsProvider).value ?? const MealAnchors();
     final health = ref.watch(reminderHealthProvider).value;
+    final status = ref.watch(reminderStatusProvider).value;
     final t = context.textTheme;
 
-    Widget mealTile(String label, String which, int minutes) => ListTile(
-      title: Text(label),
-      trailing: Text(formatMinutes(minutes), style: t.titleMedium),
-      onTap: () => _pickMeal(context, ref, anchors, which),
-    );
-
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(title: Text(tr('Settings'))),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(
           AppSpacing.md,
@@ -71,40 +37,7 @@ class SettingsScreen extends ConsumerWidget {
           AppSpacing.xl,
         ),
         children: [
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.person_outline),
-              title: Text(
-                ref.watch(profileProvider).value?.name.isNotEmpty == true
-                    ? ref.watch(profileProvider).value!.name
-                    : 'Your profile',
-              ),
-              subtitle: const Text('Name, birth year, height, conditions'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.push(AppRoutes.profile),
-            ),
-          ),
-          const SectionTitle('Meal times'),
-          Card(
-            child: Column(
-              children: [
-                mealTile('Breakfast', 'breakfast', anchors.breakfast),
-                const Divider(),
-                mealTile('Lunch', 'lunch', anchors.lunch),
-                const Divider(),
-                mealTile('Dinner', 'dinner', anchors.dinner),
-                Padding(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  child: Text(
-                    'Morning, afternoon and night doses follow these. "After food" reminds you '
-                    '30 minutes after the meal, "before food" 30 minutes before.',
-                    style: t.bodyMedium,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SectionTitle('Reminders'),
+          SectionTitle(tr('Reminders')),
           Card(
             child: Padding(
               padding: AppSpacing.cardPadding,
@@ -113,13 +46,30 @@ class SettingsScreen extends ConsumerWidget {
                 children: [
                   _HealthRow(
                     ok: health?.notificationsEnabled,
-                    label: 'Notifications allowed',
+                    label: tr('Notifications allowed'),
                   ),
                   const SizedBox(height: AppSpacing.xxs),
                   _HealthRow(
                     ok: health?.exactAlarms,
-                    label: 'Exact-time reminders allowed',
+                    label: tr('Exact-time reminders allowed'),
                   ),
+                  const SizedBox(height: AppSpacing.xxs),
+                  _HealthRow(
+                    ok: health?.batteryUnrestricted,
+                    label: tr('Battery: not restricted'),
+                  ),
+                  const _LoudSwitch(),
+                  if (status != null) ...[
+                    const SizedBox(height: AppSpacing.xxs),
+                    Text(
+                      status.report.failed > 0
+                          ? '${status.pending} reminders waiting. ${status.report.failed} could not be set: ${status.report.lastError ?? 'unknown error'}'
+                          : trf('{n} reminders waiting for the next 7 days.', {
+                              'n': '${status.pending}',
+                            }),
+                      style: t.bodyMedium,
+                    ),
+                  ],
                   const SizedBox(height: AppSpacing.sm),
                   Wrap(
                     spacing: AppSpacing.xs,
@@ -133,47 +83,108 @@ class SettingsScreen extends ConsumerWidget {
                                 .requestPermissions();
                             ref.invalidate(reminderHealthProvider);
                           },
-                          child: const Text('Fix permissions'),
+                          child: Text(tr('Fix permissions')),
+                        ),
+                      if (health != null && health.batteryUnrestricted == false)
+                        FilledButton.tonal(
+                          onPressed: () async {
+                            await SystemChannel.requestIgnoreBatteryOptimizations();
+                            ref.invalidate(reminderHealthProvider);
+                          },
+                          child: Text(tr('Allow background running')),
                         ),
                       OutlinedButton(
                         onPressed: () =>
                             ref.read(reminderServiceProvider).showTest(),
-                        child: const Text('Send a test reminder'),
+                        child: Text(tr('Test now')),
+                      ),
+                      OutlinedButton(
+                        onPressed: () async {
+                          final how = await ref
+                              .read(reminderServiceProvider)
+                              .scheduleTest(const Duration(minutes: 1));
+                          ref.invalidate(reminderStatusProvider);
+                          if (context.mounted) {
+                            context.showSnackBar(
+                              'Test set ($how). Close the app and wait one minute.',
+                            );
+                          }
+                        },
+                        child: Text(tr('Test in 1 minute')),
+                      ),
+                      OutlinedButton(
+                        onPressed: () async {
+                          await ref
+                              .read(reminderServiceProvider)
+                              .rescheduleAll();
+                          ref.read(dataVersionProvider.notifier).bump();
+                          ref.invalidate(reminderStatusProvider);
+                          if (context.mounted) {
+                            context.showSnackBar(tr('Reminders rebuilt'));
+                          }
+                        },
+                        child: Text(tr('Rebuild reminders')),
+                      ),
+                      TextButton(
+                        onPressed: SystemChannel.openAppSettings,
+                        child: Text(tr('Phone app settings')),
                       ),
                     ],
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   Text(
-                    'If reminders arrive late, open your phone\'s Settings > Apps > Reindeer > '
-                    'Battery and choose "Unrestricted".',
+                    tr(
+                      'If reminders arrive late or not at all, set Reindeer to "Unrestricted" under Battery. On Oppo, Realme, OnePlus, Xiaomi, Vivo and Samsung phones also allow "Auto-start" and lock Reindeer in the recent apps list, otherwise the phone may stop it and cancel reminders.',
+                    ),
                     style: t.bodyMedium,
                   ),
                 ],
               ),
             ),
           ),
-          const SectionTitle('Appearance'),
+          SectionTitle(tr('Language')),
+          Card(
+            child: Padding(
+              padding: AppSpacing.cardPadding,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    tr(
+                      'Choose the language for the app. Reminders use it too.',
+                    ),
+                    style: t.bodyMedium,
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  const LanguagePicker(),
+                ],
+              ),
+            ),
+          ),
+          SectionTitle(tr('Backup')),
+          const _BackupCard(),
+          SectionTitle(tr('Appearance')),
           Card(
             child: Padding(
               padding: AppSpacing.cardPadding,
               child: SizedBox(
                 width: double.infinity,
                 child: SegmentedButton<ThemeMode>(
-                  segments: const [
+                  segments: [
                     ButtonSegment(
                       value: ThemeMode.system,
                       icon: Icon(Icons.brightness_auto_outlined),
-                      label: Text('Auto'),
+                      label: Text(tr('Auto')),
                     ),
                     ButtonSegment(
                       value: ThemeMode.light,
                       icon: Icon(Icons.light_mode_outlined),
-                      label: Text('Light'),
+                      label: Text(tr('Light')),
                     ),
                     ButtonSegment(
                       value: ThemeMode.dark,
                       icon: Icon(Icons.dark_mode_outlined),
-                      label: Text('Dark'),
+                      label: Text(tr('Dark')),
                     ),
                   ],
                   selected: {themeMode},
@@ -184,7 +195,7 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
           ),
-          const SectionTitle('About'),
+          SectionTitle(tr('About')),
           Card(
             child: Padding(
               padding: AppSpacing.cardPadding,
@@ -205,11 +216,9 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
-                    'Reindeer is a reminder tool. It does not give medical advice and does not '
-                    'check doses or interactions. Always follow your doctor\'s prescription.\n\n'
-                    'Medicine details come from public lists (a community medicine dataset and the '
-                    'Jan Aushadhi product list) and may be incomplete or out of date.\n\n'
-                    'All your data stays on this phone. There is no account and nothing is uploaded.',
+                    tr(
+                      'Reindeer is a reminder tool. It does not give medical advice and does not check doses or interactions. Always follow your doctor\'s prescription.\n\nMedicine details come from public lists (a community medicine dataset and the Jan Aushadhi product list) and may be incomplete or out of date.\n\nAll your data stays on this phone. There is no account and nothing is uploaded.',
+                    ),
                     style: t.bodyMedium,
                   ),
                 ],
@@ -245,3 +254,158 @@ class _HealthRow extends StatelessWidget {
     );
   }
 }
+
+/// Save everything to a file and bring it back, for a new phone or a reset.
+class _BackupCard extends ConsumerStatefulWidget {
+  const _BackupCard();
+
+  @override
+  ConsumerState<_BackupCard> createState() => _BackupCardState();
+}
+
+class _BackupCardState extends ConsumerState<_BackupCard> {
+  bool _busy = false;
+
+  Future<void> _save() async {
+    setState(() => _busy = true);
+    try {
+      final text = await ref.read(backupServiceProvider).export();
+      final d = DateTime.now();
+      String two(int n) => n.toString().padLeft(2, '0');
+      final name =
+          'reindeer-backup-${d.year}-${two(d.month)}-${two(d.day)}.json';
+      final ok = await SystemChannel.saveTextFile(name, text);
+      if (!mounted) return;
+      if (ok) {
+        context.showSnackBar(tr('Backup saved'));
+      }
+    } catch (_) {
+      if (mounted) {
+        context.showSnackBar(tr('Could not save the backup'), isError: true);
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _restore() async {
+    setState(() => _busy = true);
+    try {
+      final text = await SystemChannel.pickTextFile();
+      if (text == null || !mounted) {
+        return;
+      }
+      final BackupData data;
+      try {
+        data = decodeBackup(text);
+      } on FormatException catch (e) {
+        if (mounted) context.showSnackBar(e.message, isError: true);
+        return;
+      }
+      final s = summarize(data);
+      final go = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(tr('Restore this backup?')),
+          content: Text(
+            trf(
+              'It has {a} medicines, {b} dose records and {c} readings.\n\nEverything now in Reindeer will be replaced.',
+              {'a': '${s.medicines}', 'b': '${s.doses}', 'c': '${s.readings}'},
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(tr('Cancel')),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(tr('Restore')),
+            ),
+          ],
+        ),
+      );
+      if (go != true || !mounted) return;
+      await ref.read(backupServiceProvider).restore(data);
+      if (mounted) context.showSnackBar(tr('Backup restored'));
+    } catch (_) {
+      if (mounted) {
+        context.showSnackBar(
+          tr('Could not restore. Nothing was changed.'),
+          isError: true,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: AppSpacing.cardPadding,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              tr(
+                'Save your medicines, doses, readings and notes to a file. Keep it in Google Drive or send it to yourself, then restore it on a new phone.',
+              ),
+              style: context.textTheme.bodyMedium,
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Wrap(
+              spacing: AppSpacing.xs,
+              runSpacing: AppSpacing.xs,
+              children: [
+                FilledButton.icon(
+                  onPressed: _busy ? null : _save,
+                  icon: const Icon(Icons.save_alt),
+                  label: Text(tr('Save backup')),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _busy ? null : _restore,
+                  icon: const Icon(Icons.restore),
+                  label: Text(tr('Restore')),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Loud, repeating reminders that ring until the person responds.
+class _LoudSwitch extends ConsumerWidget {
+  const _LoudSwitch();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final on = ref.watch(loudRemindersProvider).value ?? false;
+    return SwitchListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text(tr('Loud repeating reminders')),
+      subtitle: Text(
+        tr(
+          'Rings at alarm volume and repeats until you tap Taken, Skip or Snooze. Good if you often miss a normal notification.',
+        ),
+      ),
+      value: on,
+      onChanged: (v) async {
+        await ref
+            .read(settingsRepositoryProvider)
+            .set(keyPersistentAlarm, v ? '1' : '0');
+        ref.invalidate(loudRemindersProvider);
+        await ref.read(reminderServiceProvider).rescheduleAll();
+      },
+    );
+  }
+}
+
+final loudRemindersProvider = FutureProvider<bool>((ref) async {
+  return (await ref.read(settingsRepositoryProvider).get(keyPersistentAlarm)) ==
+      '1';
+});

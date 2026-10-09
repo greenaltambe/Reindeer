@@ -1,3 +1,5 @@
+import 'package:reindeer/core/i18n/strings.dart';
+
 /// Date and time helpers (kept dependency-free on purpose).
 const List<String> _weekdayNames = [
   'Monday',
@@ -63,10 +65,10 @@ String formatMinutes(int minutes) =>
 String formatDayLabel(DateTime d, DateTime now) {
   final day = dateOnly(d);
   final today = dateOnly(now);
-  if (day == today) return 'Today';
-  if (day == nextDay(today)) return 'Tomorrow';
-  if (nextDay(day) == today) return 'Yesterday';
-  return '${_weekdayNames[day.weekday - 1].substring(0, 3)}, ${day.day} ${_monthNames[day.month - 1]}';
+  if (day == today) return tr('Today');
+  if (day == nextDay(today)) return tr('Tomorrow');
+  if (nextDay(day) == today) return tr('Yesterday');
+  return '${tr(_weekdayNames[day.weekday - 1].substring(0, 3))}, ${day.day} ${tr(_monthNames[day.month - 1])}';
 }
 
 /// `Saturday, 3 October`.
@@ -85,5 +87,34 @@ String formatLongDate(DateTime d) {
     'November',
     'December',
   ];
-  return '${_weekdayNames[d.weekday - 1]}, ${d.day} ${months[d.month - 1]}';
+  return '${tr(_weekdayNames[d.weekday - 1])}, ${d.day} ${tr(months[d.month - 1])}';
+}
+
+/// The Sunday on or before [d] (the calendar strip starts weeks on Sunday).
+DateTime startOfWeek(DateTime d) {
+  final day = dateOnly(d);
+  return DateTime(day.year, day.month, day.day - day.weekday % 7);
+}
+
+/// `Mon`.
+String formatWeekdayShort(DateTime d) =>
+    tr(_weekdayNames[d.weekday - 1].substring(0, 3));
+
+/// `October 2026`.
+String formatMonthYear(DateTime d) {
+  const months = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
+  return '${tr(months[d.month - 1])} ${d.year}';
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:reindeer/core/utils/context_extensions.dart';
 import 'package:reindeer/core/utils/date_time_utils.dart';
+import 'package:reindeer/core/i18n/strings.dart';
 
 /// A simple line chart over time. [second] draws a second line (for blood
 /// pressure). Points must be oldest first.
@@ -26,16 +27,23 @@ class TrendChart extends StatelessWidget {
     return SizedBox(
       height: compact ? 40 : height,
       width: double.infinity,
-      child: CustomPaint(
-        painter: _TrendPainter(
-          times: times,
-          values: values,
-          second: second,
-          compact: compact,
-          line: scheme.primary,
-          line2: scheme.secondary,
-          grid: scheme.outlineVariant,
-          text: scheme.onSurfaceVariant,
+      // The line draws itself in from the left the first time it appears.
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: 1),
+        duration: const Duration(milliseconds: 800),
+        curve: Curves.easeOutCubic,
+        builder: (context, progress, _) => CustomPaint(
+          painter: _TrendPainter(
+            times: times,
+            values: values,
+            second: second,
+            compact: compact,
+            line: scheme.primary,
+            line2: scheme.secondary,
+            grid: scheme.outlineVariant,
+            text: scheme.onSurfaceVariant,
+            progress: progress,
+          ),
         ),
       ),
     );
@@ -52,6 +60,7 @@ class _TrendPainter extends CustomPainter {
     required this.line2,
     required this.grid,
     required this.text,
+    this.progress = 1,
   });
 
   final List<DateTime> times;
@@ -59,6 +68,7 @@ class _TrendPainter extends CustomPainter {
   final List<double>? second;
   final bool compact;
   final Color line, line2, grid, text;
+  final double progress;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -132,9 +142,12 @@ class _TrendPainter extends CustomPainter {
       }
     }
 
+    canvas.save();
+    canvas.clipRect(Rect.fromLTWH(0, 0, size.width * progress, size.height));
     draw(values, line);
     final s = second;
     if (s != null && s.length == values.length) draw(s, line2);
+    canvas.restore();
   }
 
   void _label(Canvas canvas, String s, Offset at) {
@@ -153,14 +166,15 @@ class _TrendPainter extends CustomPainter {
       old.values != values ||
       old.times != times ||
       old.second != second ||
-      old.line != line;
+      old.line != line ||
+      old.progress != progress;
 }
 
 /// Friendly "2 days ago" text.
 String agoText(DateTime at, DateTime now) {
   final d = dateOnly(now).difference(dateOnly(at)).inDays;
-  if (d <= 0) return 'Today, ${formatTime(at)}';
-  if (d == 1) return 'Yesterday';
-  if (d < 30) return '$d days ago';
-  return '${(d / 30).floor()} month${d < 60 ? '' : 's'} ago';
+  if (d <= 0) return trf('Today, {n}', {'n': formatTime(at)});
+  if (d == 1) return tr('Yesterday');
+  if (d < 30) return trf('{n} days ago', {'n': '$d'});
+  return trn((d / 30).floor(), '{n} month ago', '{n} months ago');
 }

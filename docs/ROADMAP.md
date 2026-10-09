@@ -4,11 +4,11 @@
 
 Android, local only. Medicine search, guided add, meal-based reminders with action
 buttons, Today / Medicines / Progress, stock and low-stock warnings, doctor summary,
-barcode scan that learns, conditions list, onboarding, profile, Health tab, custom icon.
+prescription shorthand quick-add, same-ingredient warning, allergy guard, Medical ID, symptom diary, missed-dose guidance, unusual-reading flags, share summary, conditions list, onboarding, profile, Health tab, custom icon.
 
 ## Not yet verified
 
-- Barcode scanning on real packs (written without a device test).
+- Prescription shorthand on real prescriptions.
 - Reminders after a reboot and under aggressive battery saving, on several phones.
 - Medicine dataset licence and accuracy.
 

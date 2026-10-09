@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reindeer/features/adherence/domain/dose_timeline.dart';
+import 'package:reindeer/features/adherence/domain/models/miss_reason.dart';
 import 'package:reindeer/features/medications/domain/models/dose_unit.dart';
 import 'package:reindeer/features/medications/domain/models/medication_plan.dart';
 import 'package:reindeer/features/progress/domain/doctor_summary.dart';
@@ -46,4 +47,42 @@ void main() {
     expect(text, contains('Latest readings'));
     expect(text, contains('Weight: 72 kg'));
   });
+
+  test('summary includes allergies and symptoms', () {
+    final text = buildDoctorSummary(
+      plans: const [],
+      summary: AdherenceSummary.from(const [], DateTime(2026, 10, 3)),
+      days: 7,
+      now: DateTime(2026, 10, 3),
+      allergies: const ['Penicillins'],
+      symptoms: const ['Saturday, 3 October: Nausea (mild)'],
+    );
+    expect(text, contains('Allergies: Penicillins'));
+    expect(text, contains('Symptoms I noted'));
+    expect(text, contains('Nausea (mild)'));
+  });
+
+  test(
+    'summary includes miss reasons, patient notes, changes, and disclaimer',
+    () {
+      final text = buildDoctorSummary(
+        plans: const [],
+        summary: AdherenceSummary.from(const [], DateTime(2026, 10, 3)),
+        days: 30,
+        now: DateTime(2026, 10, 3),
+        missReasons: const {
+          MissReasonType.forgot: 2,
+          MissReasonType.sideEffect: 1,
+        },
+        missNotes: const ['Dizziness after evening dose'],
+        prescriptionChanges: const ['Metformin dose adjusted to 1000mg'],
+      );
+      expect(text, contains('Self-recorded, not verified intake'));
+      expect(text, contains('Missed dose reasons breakdown'));
+      expect(text, contains('Patient notes & side effects'));
+      expect(text, contains('Dizziness after evening dose'));
+      expect(text, contains('Prescription changes since last visit'));
+      expect(text, contains('Metformin dose adjusted to 1000mg'));
+    },
+  );
 }

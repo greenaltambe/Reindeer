@@ -72,6 +72,30 @@ class ProfileRepository {
       }
     });
   }
+
+  Future<List<String>> allergies() async {
+    final rows = await _db.query(
+      'allergies',
+      where: 'profile_id = ?',
+      whereArgs: [_id],
+      orderBy: 'id ASC',
+    );
+    return [for (final r in rows) r['name'] as String];
+  }
+
+  Future<void> setAllergies(Iterable<String> names) async {
+    await _db.transaction((txn) async {
+      await txn.delete('allergies', where: 'profile_id = ?', whereArgs: [_id]);
+      for (final n in names) {
+        final t = n.trim();
+        if (t.isEmpty) continue;
+        await txn.insert('allergies', {
+          'profile_id': _id,
+          'name': t,
+        }, conflictAlgorithm: ConflictAlgorithm.ignore);
+      }
+    });
+  }
 }
 
 final profileRepositoryProvider = Provider<ProfileRepository>(
@@ -86,4 +110,9 @@ final profileProvider = FutureProvider<UserProfile>((ref) {
 final profileConditionsProvider = FutureProvider<List<String>>((ref) {
   ref.watch(dataVersionProvider);
   return ref.watch(profileRepositoryProvider).conditions();
+});
+
+final allergiesProvider = FutureProvider<List<String>>((ref) {
+  ref.watch(dataVersionProvider);
+  return ref.watch(profileRepositoryProvider).allergies();
 });

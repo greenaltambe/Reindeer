@@ -45,4 +45,4 @@ checked against it by `test/search_parity_test.dart` (needs `assets/db/medicines
 
 - Only two compositions are kept per product, so some combination products look
   incomplete (the app warns about this).
-- No barcode data exists in the datasets, so the scanner learns links as you use it.
+- Barcode scanning was removed: the datasets hold no barcodes, and pack QR codes point to different manufacturer sites, so they cannot identify a medicine reliably.

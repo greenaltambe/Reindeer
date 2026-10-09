@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:reindeer/core/constants/app_spacing.dart';
@@ -8,6 +7,8 @@ import 'package:reindeer/core/utils/context_extensions.dart';
 import 'package:reindeer/features/conditions/presentation/condition_picker.dart';
 import 'package:reindeer/features/profile/data/profile_repository.dart';
 import 'package:reindeer/shared/widgets/choice_tile.dart';
+import 'package:reindeer/core/i18n/strings.dart';
+import 'package:reindeer/shared/widgets/year_wheel_picker.dart';
 
 /// Edit the name, birth year, height and health conditions.
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -72,14 +73,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
-      context.showSnackBar('Could not save: $e');
+      context.showSnackBar(trf('Could not save: {n}', {'n': '$e'}));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Your profile')),
+      appBar: AppBar(title: Text(tr('Your profile'))),
       body: !_loaded
           ? const Center(child: CircularProgressIndicator())
           : ListView(
@@ -93,17 +94,30 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 TextField(
                   controller: _name,
                   textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(labelText: 'Name'),
+                  decoration: InputDecoration(labelText: tr('Name')),
                 ),
                 const SizedBox(height: AppSpacing.sm),
-                TextField(
-                  controller: _year,
-                  keyboardType: TextInputType.number,
-                  maxLength: 4,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: const InputDecoration(
-                    labelText: 'Birth year',
-                    counterText: '',
+                InkWell(
+                  onTap: () async {
+                    final current = int.tryParse(_year.text.trim());
+                    final picked = await showYearWheelPickerSheet(
+                      context: context,
+                      initialYear: current ?? (DateTime.now().year - 45),
+                    );
+                    if (picked != null) {
+                      setState(() => _year.text = '$picked');
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: IgnorePointer(
+                    child: TextField(
+                      controller: _year,
+                      decoration: InputDecoration(
+                        labelText: tr('Birth year'),
+                        suffixIcon: const Icon(Icons.calendar_today_rounded),
+                        hintText: tr('Tap to select birth year'),
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: AppSpacing.sm),
@@ -111,15 +125,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   controller: _height,
                   keyboardType: TextInputType.number,
                   maxLength: 3,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: const InputDecoration(
-                    labelText: 'Height',
+                  decoration: InputDecoration(
+                    labelText: tr('Height'),
                     suffixText: 'cm',
-                    helperText: 'Used only to work out BMI from your weight.',
+                    helperText: tr(
+                      'Used only to work out BMI from your weight.',
+                    ),
                     counterText: '',
                   ),
                 ),
-                const SectionTitle('Health conditions'),
+                SectionTitle(tr('Health conditions')),
                 ConditionPicker(
                   selected: _conditions,
                   onChanged: (v) => setState(() => _conditions = v),
@@ -130,7 +145,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     minimumSize: const Size.fromHeight(54),
                   ),
                   onPressed: _saving ? null : _save,
-                  child: const Text('Save'),
+                  child: Text(tr('Save')),
                 ),
               ],
             ),

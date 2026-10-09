@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:reindeer/core/constants/app_spacing.dart';
+import 'package:reindeer/core/router/app_routes.dart';
 import 'package:reindeer/core/utils/context_extensions.dart';
 import 'package:reindeer/features/health/data/measurement_repository.dart';
 import 'package:reindeer/features/health/domain/measure_type.dart';
 import 'package:reindeer/features/health/presentation/trend_chart.dart';
+import 'package:reindeer/shared/widgets/fade_slide_in.dart';
+import 'package:reindeer/core/i18n/strings.dart';
 
 /// Icons for each reading.
 extension MeasureTypeIcon on MeasureType {
@@ -25,7 +28,7 @@ class HealthScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Health')),
+      appBar: AppBar(title: Text(tr('Health'))),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(
           AppSpacing.md,
@@ -34,15 +37,35 @@ class HealthScreen extends ConsumerWidget {
           AppSpacing.xl,
         ),
         children: [
-          for (final type in MeasureType.values)
-            Padding(
+          FadeSlideIn(
+            child: Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-              child: _MetricCard(type: type),
+              child: Card(
+                child: ListTile(
+                  leading: const Icon(Icons.sentiment_satisfied_outlined),
+                  title: Text(tr('How I feel')),
+                  subtitle: Text(
+                    tr('Symptoms and side effects, for your doctor'),
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push(AppRoutes.symptoms),
+                ),
+              ),
+            ),
+          ),
+          for (final (i, type) in MeasureType.values.indexed)
+            FadeSlideIn(
+              index: i,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+                child: _MetricCard(type: type),
+              ),
             ),
           const SizedBox(height: AppSpacing.sm),
           Text(
-            'Readings stay on this phone. Reindeer does not interpret them. '
-            'Ask your doctor what is right for you.',
+            tr(
+              'Readings stay on this phone. Reindeer points out unusual readings as a general guide, not a diagnosis. Ask your doctor what is right for you.',
+            ),
             style: context.textTheme.bodyMedium,
           ),
         ],
@@ -90,7 +113,7 @@ class _MetricCard extends ConsumerWidget {
                   children: [
                     Text(type.label, style: t.titleMedium),
                     if (latest == null)
-                      Text('No readings yet', style: t.bodyMedium)
+                      Text(tr('No readings yet'), style: t.bodyMedium)
                     else ...[
                       Text(latest.display, style: t.titleLarge),
                       Text(agoText(latest.at, now), style: t.bodyMedium),
@@ -111,7 +134,9 @@ class _MetricCard extends ConsumerWidget {
                   ),
                 ),
               IconButton.filledTonal(
-                tooltip: 'Add ${type.label.toLowerCase()} reading',
+                tooltip: trf('Add {n} reading', {
+                  'n': type.label.toLowerCase(),
+                }),
                 onPressed: () => context.push('/health/${type.name}/add'),
                 icon: const Icon(Icons.add),
               ),

@@ -34,6 +34,10 @@ class SettingsRepository {
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
+  Future<void> remove(String key) async {
+    await _db.delete('settings', where: 'key = ?', whereArgs: [key]);
+  }
+
   Future<bool> isOnboarded() async => (await get(keyOnboarded)) == '1';
 
   Future<MealAnchors> loadMealAnchors() async {

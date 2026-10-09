@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:reindeer/core/constants/app_spacing.dart';
@@ -13,7 +12,11 @@ import 'package:reindeer/features/reminders/reminder_service.dart';
 import 'package:reindeer/features/settings/data/settings_repository.dart';
 import 'package:reindeer/features/settings/domain/meal_anchors.dart';
 import 'package:reindeer/shared/widgets/reindeer_mark.dart';
+import 'package:reindeer/shared/widgets/fade_slide_in.dart';
 import 'package:reindeer/shared/widgets/step_scaffold.dart';
+import 'package:reindeer/core/i18n/strings.dart';
+import 'package:reindeer/shared/widgets/language_picker.dart';
+import 'package:reindeer/shared/widgets/year_wheel_picker.dart';
 
 /// First-run flow, one question per page: welcome, name, birth year,
 /// conditions, meal times, reminders. Only what the app really uses.
@@ -33,6 +36,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   List<String> _conditions = [];
   MealAnchors _anchors = const MealAnchors();
   bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _year.text = '${DateTime.now().year - 45}';
+  }
 
   @override
   void dispose() {
@@ -60,7 +69,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay(hour: current ~/ 60, minute: current % 60),
-      helpText: 'When do you usually have $which?',
+      helpText: trf('When do you usually have {n}?', {'n': tr(which)}),
     );
     if (picked == null) return;
     final minutes = picked.hour * 60 + picked.minute;
@@ -95,7 +104,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _busy = false);
-      context.showSnackBar('Could not finish setup: $e');
+      context.showSnackBar(trf('Could not finish setup: {n}', {'n': '$e'}));
     }
   }
 
@@ -111,28 +120,36 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           padding: EdgeInsets.only(bottom: AppSpacing.md),
           child: ReindeerMark(size: 96, interactive: true),
         ),
-        title: 'Welcome to Reindeer',
-        subtitle:
-            'Your medicine reminder. It keeps watch so you never miss a dose.',
-        nextLabel: 'Get started',
+        title: tr('Welcome to Reindeer'),
+        subtitle: tr(
+          'Your medicine reminder. It keeps watch so you never miss a dose.',
+        ),
+        nextLabel: tr('Get started'),
         onNext: _next,
-        child: Card(
-          child: Padding(
-            padding: AppSpacing.cardPadding,
-            child: Text(
-              'Reindeer is a reminder tool. It does not give medical advice or check '
-              'doses. Always follow your doctor\'s prescription.\n\n'
-              'Everything stays on this phone.',
-              style: t.bodyLarge,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const LanguagePicker(),
+            const SizedBox(height: AppSpacing.md),
+            Card(
+              child: Padding(
+                padding: AppSpacing.cardPadding,
+                child: Text(
+                  tr(
+                    'Reindeer is a reminder tool. It does not give medical advice or check doses. Always follow your doctor\'s prescription.\n\nEverything stays on this phone.',
+                  ),
+                  style: t.bodyLarge,
+                ),
+              ),
             ),
-          ),
+          ],
         ),
       ),
       1 => StepScaffold(
         stepIndex: 1,
         stepCount: _steps,
-        title: 'What should we call you?',
-        subtitle: 'Just a first name, so your reindeer can say hello.',
+        title: tr('What should we call you?'),
+        subtitle: tr('Just a first name, so your reindeer can say hello.'),
         onBack: _back,
         onNext: _next,
         onSkip: _next,
@@ -142,14 +159,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           textCapitalization: TextCapitalization.words,
           textInputAction: TextInputAction.done,
           style: t.titleLarge,
-          decoration: const InputDecoration(hintText: 'Your name'),
+          decoration: InputDecoration(hintText: tr('Your name')),
         ),
       ),
       2 => StepScaffold(
         stepIndex: 2,
         stepCount: _steps,
-        title: 'When were you born?',
-        subtitle: 'Only the year. It is shown in the summary you can share with your doctor.',
+        title: tr('When were you born?'),
+        subtitle: tr(
+          'Only the year. It is shown in the summary you can share with your doctor.',
+        ),
         onBack: _back,
         onNext: _next,
         onSkip: _next,
@@ -158,29 +177,30 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             final y = _birthYear;
             final age = y == null ? null : DateTime.now().year - y;
             return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                TextField(
-                  controller: _year,
-                  autofocus: true,
-                  keyboardType: TextInputType.number,
-                  maxLength: 4,
-                  style: t.titleLarge,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: const InputDecoration(
-                    hintText: 'e.g. 1962',
-                    counterText: '',
-                  ),
-                  onChanged: (_) => setLocal(() {}),
+                YearWheelPicker(
+                  selectedYear: _birthYear ?? (DateTime.now().year - 45),
+                  onYearChanged: (pickedYear) {
+                    setLocal(() {
+                      _year.text = '$pickedYear';
+                    });
+                  },
                 ),
                 if (age != null)
                   Padding(
                     padding: const EdgeInsets.only(top: AppSpacing.sm),
                     child: Text(
                       age < 18
-                          ? 'Under 18? Please set this up together with a parent or guardian.'
-                          : 'Age about $age',
-                      style: t.bodyLarge?.copyWith(color: scheme.primary),
+                          ? tr(
+                              'Under 18? Please set this up together with a parent or guardian.',
+                            )
+                          : trf('Age about {n}', {'n': '$age'}),
+                      textAlign: TextAlign.center,
+                      style: t.bodyLarge?.copyWith(
+                        color: scheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
               ],
@@ -191,11 +211,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       3 => StepScaffold(
         stepIndex: 3,
         stepCount: _steps,
-        title: 'Any health conditions?',
-        subtitle: 'Optional. It helps suggest what each medicine is for.',
+        title: tr('Any health conditions?'),
+        subtitle: tr('Optional. It helps suggest what each medicine is for.'),
         onBack: _back,
         onNext: _next,
-        nextLabel: _conditions.isEmpty ? 'None right now' : 'Next',
+        nextLabel: _conditions.isEmpty ? tr('None right now') : tr('Next'),
         child: ConditionPicker(
           selected: _conditions,
           onChanged: (v) => setState(() => _conditions = v),
@@ -204,17 +224,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       4 => StepScaffold(
         stepIndex: 4,
         stepCount: _steps,
-        title: 'When do you eat?',
-        subtitle:
-            'Many medicines go before or after food. Tap a time to change it.',
+        title: tr('When do you eat?'),
+        subtitle: tr(
+          'Many medicines go before or after food. Tap a time to change it.',
+        ),
         onBack: _back,
         onNext: _next,
         child: Column(
           children: [
             for (final (label, which, minutes) in [
-              ('Breakfast', 'breakfast', _anchors.breakfast),
-              ('Lunch', 'lunch', _anchors.lunch),
-              ('Dinner', 'dinner', _anchors.dinner),
+              (tr('Breakfast'), 'breakfast', _anchors.breakfast),
+              (tr('Lunch'), 'lunch', _anchors.lunch),
+              (tr('Dinner'), 'dinner', _anchors.dinner),
             ])
               Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.xs),
@@ -240,11 +261,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             color: scheme.primary,
           ),
         ),
-        title: 'Allow reminders',
-        subtitle:
-            'Reindeer needs permission to show notifications and ring on time.',
+        title: tr('Allow reminders'),
+        subtitle: tr(
+          'Reindeer needs permission to show notifications and ring on time.',
+        ),
         onBack: _busy ? null : _back,
-        nextLabel: 'Allow reminders',
+        nextLabel: tr('Allow reminders'),
         busy: _busy,
         onNext: () => _finish(askPermission: true),
         onSkip: () => _finish(askPermission: false),
@@ -252,14 +274,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           child: Padding(
             padding: AppSpacing.cardPadding,
             child: Text(
-              'Tip: if reminders ever come late, set Reindeer to "Unrestricted" under '
-              'phone Settings > Apps > Battery.',
+              tr(
+                'Tip: if reminders ever come late, set Reindeer to "Unrestricted" under phone Settings > Apps > Battery.',
+              ),
               style: t.bodyLarge,
             ),
           ),
         ),
       ),
     };
-    return Scaffold(body: page);
+    return Scaffold(
+      body: StepSwitcher(index: _step, child: page),
+    );
   }
 }

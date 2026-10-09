@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:reindeer/core/constants/app_spacing.dart';
 import 'package:reindeer/core/utils/context_extensions.dart';
+import 'package:reindeer/core/i18n/strings.dart';
 
 /// One page of a step-by-step flow: progress bar, a single question, content,
 /// and Back / Next (and optionally Skip) buttons.
@@ -52,7 +53,7 @@ class StepScaffold extends StatelessWidget {
               children: [
                 if (onBack != null)
                   IconButton(
-                    tooltip: 'Back',
+                    tooltip: tr('Back'),
                     onPressed: onBack,
                     icon: const Icon(Icons.arrow_back),
                   )
@@ -103,7 +104,7 @@ class StepScaffold extends StatelessWidget {
                         height: 22,
                         child: CircularProgressIndicator(strokeWidth: 2.4),
                       )
-                    : Text(nextLabel),
+                    : Text(tr(nextLabel)),
               ),
             ),
             if (onSkip != null)
@@ -111,7 +112,7 @@ class StepScaffold extends StatelessWidget {
                 width: double.infinity,
                 child: TextButton(
                   onPressed: busy ? null : onSkip,
-                  child: const Text('Skip'),
+                  child: Text(tr('Skip')),
                 ),
               ),
           ],

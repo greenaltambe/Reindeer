@@ -1,3 +1,4 @@
+import 'package:reindeer/core/i18n/strings.dart';
 import 'package:reindeer/features/medications/domain/models/dose_unit.dart'
     show formatAmount;
 
@@ -10,10 +11,13 @@ enum MeasureType {
   bodyFat('Body fat', '%', 2, 70, 1),
   pulse('Pulse', 'bpm', 20, 250, 0);
 
-  const MeasureType(this.label, this.unit, this.min, this.max, this.decimals);
+  const MeasureType(this._label, this.unit, this.min, this.max, this.decimals);
 
-  final String label;
+  final String _label;
   final String unit;
+
+  /// The reading's name in the chosen language.
+  String get label => tr(_label);
 
   /// Plausible range; anything outside is probably a typing mistake.
   final double min;
@@ -23,8 +27,8 @@ enum MeasureType {
   /// Blood pressure has two numbers (top / bottom).
   bool get hasSecond => this == MeasureType.bloodPressure;
 
-  String get firstLabel => hasSecond ? 'Top (systolic)' : label;
-  String get secondLabel => 'Bottom (diastolic)';
+  String get firstLabel => hasSecond ? tr('Top (systolic)') : label;
+  String get secondLabel => tr('Bottom (diastolic)');
 
   /// Extra choices for when the reading was taken.
   List<String> get contexts => switch (this) {
@@ -34,13 +38,17 @@ enum MeasureType {
 
   /// A short, neutral hint. Never a diagnosis.
   String get hint => switch (this) {
-    MeasureType.weight =>
+    MeasureType.weight => tr(
       'Weigh yourself at the same time of day for a fair trend.',
-    MeasureType.bloodPressure =>
+    ),
+    MeasureType.bloodPressure => tr(
       'Sit and rest for a few minutes before measuring.',
-    MeasureType.glucose => 'Note whether it was fasting or after a meal.',
-    MeasureType.bodyFat => 'Reading from a body-composition scale or machine.',
-    MeasureType.pulse => 'Beats per minute, at rest if you can.',
+    ),
+    MeasureType.glucose => tr('Note whether it was fasting or after a meal.'),
+    MeasureType.bodyFat => tr(
+      'Reading from a body-composition scale or machine.',
+    ),
+    MeasureType.pulse => tr('Beats per minute, at rest if you can.'),
   };
 
   static MeasureType? byName(String name) {
@@ -117,7 +125,7 @@ double? bmi(double weightKg, double? heightCm) {
 
 /// A repeating reminder to take a reading.
 class MeasureReminder {
-  const MeasureReminder({required this.minutes, this.weekday});
+  const MeasureReminder({required this.minutes, this.weekday, this.since});
 
   /// Minutes after midnight.
   final int minutes;
@@ -125,13 +133,26 @@ class MeasureReminder {
   /// 1 = Monday .. 7 = Sunday; null means every day.
   final int? weekday;
 
-  String encode() =>
-      '${minutes ~/ 60}:${(minutes % 60).toString().padLeft(2, '0')}|${weekday == null ? 'daily' : 'w$weekday'}';
+  /// The day the reminder was set; earlier days never show it as due.
+  final DateTime? since;
+
+  /// Whether the reminder falls on [day] (ignores [since]).
+  bool occursOn(DateTime day) => weekday == null || weekday == day.weekday;
+
+  String encode() {
+    final base =
+        '${minutes ~/ 60}:${(minutes % 60).toString().padLeft(2, '0')}|${weekday == null ? 'daily' : 'w$weekday'}';
+    final s = since;
+    if (s == null) return base;
+    final mm = s.month.toString().padLeft(2, '0');
+    final dd = s.day.toString().padLeft(2, '0');
+    return '$base|${s.year.toString().padLeft(4, '0')}-$mm-$dd';
+  }
 
   static MeasureReminder? decode(String? s) {
     if (s == null || s.isEmpty) return null;
     final parts = s.split('|');
-    if (parts.length != 2) return null;
+    if (parts.length != 2 && parts.length != 3) return null;
     final hm = parts[0].split(':');
     if (hm.length != 2) return null;
     final h = int.tryParse(hm[0]);
@@ -145,7 +166,12 @@ class MeasureReminder {
       weekday = int.tryParse(parts[1].substring(1));
       if (weekday == null || weekday < 1 || weekday > 7) return null;
     }
-    return MeasureReminder(minutes: h * 60 + m, weekday: weekday);
+    DateTime? since;
+    if (parts.length == 3) {
+      since = DateTime.tryParse(parts[2]);
+      if (since == null) return null;
+    }
+    return MeasureReminder(minutes: h * 60 + m, weekday: weekday, since: since);
   }
 
   static String settingsKey(MeasureType t) => 'mrem_${t.name}';

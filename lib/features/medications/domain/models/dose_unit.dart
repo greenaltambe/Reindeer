@@ -1,3 +1,5 @@
+import 'package:reindeer/core/i18n/strings.dart';
+
 /// Unit a single dose is measured in. Covers common Indian dosage forms.
 enum DoseUnit {
   tablet,
@@ -15,29 +17,29 @@ enum DoseUnit {
     final n = formatAmount(amount);
     final one = amount == 1;
     return switch (this) {
-      DoseUnit.tablet => '$n ${one ? 'tablet' : 'tablets'}',
-      DoseUnit.capsule => '$n ${one ? 'capsule' : 'capsules'}',
+      DoseUnit.tablet => '$n ${tr(one ? 'tablet' : 'tablets')}',
+      DoseUnit.capsule => '$n ${tr(one ? 'capsule' : 'capsules')}',
       DoseUnit.ml => '$n ml',
-      DoseUnit.drops => '$n ${one ? 'drop' : 'drops'}',
-      DoseUnit.puffs => '$n ${one ? 'puff' : 'puffs'}',
-      DoseUnit.units => '$n ${one ? 'unit' : 'units'}',
-      DoseUnit.injection => '$n ${one ? 'injection' : 'injections'}',
-      DoseUnit.application => '$n ${one ? 'application' : 'applications'}',
-      DoseUnit.sachet => '$n ${one ? 'sachet' : 'sachets'}',
+      DoseUnit.drops => '$n ${tr(one ? 'drop' : 'drops')}',
+      DoseUnit.puffs => '$n ${tr(one ? 'puff' : 'puffs')}',
+      DoseUnit.units => '$n ${tr(one ? 'unit' : 'units')}',
+      DoseUnit.injection => '$n ${tr(one ? 'injection' : 'injections')}',
+      DoseUnit.application => '$n ${tr(one ? 'application' : 'applications')}',
+      DoseUnit.sachet => '$n ${tr(one ? 'sachet' : 'sachets')}',
     };
   }
 
   /// Short label used in pickers.
   String get label => switch (this) {
-    DoseUnit.tablet => 'Tablet',
-    DoseUnit.capsule => 'Capsule',
-    DoseUnit.ml => 'ml (liquid)',
-    DoseUnit.drops => 'Drops',
-    DoseUnit.puffs => 'Puffs',
-    DoseUnit.units => 'Units',
-    DoseUnit.injection => 'Injection',
-    DoseUnit.application => 'Apply',
-    DoseUnit.sachet => 'Sachet',
+    DoseUnit.tablet => tr('Tablet'),
+    DoseUnit.capsule => tr('Capsule'),
+    DoseUnit.ml => tr('ml (liquid)'),
+    DoseUnit.drops => tr('Drops'),
+    DoseUnit.puffs => tr('Puffs'),
+    DoseUnit.units => tr('Units'),
+    DoseUnit.injection => tr('Injection'),
+    DoseUnit.application => tr('Apply'),
+    DoseUnit.sachet => tr('Sachet'),
   };
 
   /// Step used by the +/- buttons when choosing a dose amount.
@@ -78,9 +80,9 @@ enum DaySlot {
   night;
 
   String get label => switch (this) {
-    DaySlot.morning => 'Morning',
-    DaySlot.afternoon => 'Afternoon',
-    DaySlot.night => 'Night',
+    DaySlot.morning => tr('Morning'),
+    DaySlot.afternoon => tr('Afternoon'),
+    DaySlot.night => tr('Night'),
   };
 
   /// Which meal the slot is tied to.
@@ -105,9 +107,9 @@ enum MealTiming {
 
   String get label => switch (this) {
     MealTiming.anytime => "Doesn't matter",
-    MealTiming.beforeFood => 'Before food',
-    MealTiming.afterFood => 'After food',
-    MealTiming.withFood => 'With food',
+    MealTiming.beforeFood => tr('Before food'),
+    MealTiming.afterFood => tr('After food'),
+    MealTiming.withFood => tr('With food'),
   };
 
   /// Reminder offset relative to the meal time.

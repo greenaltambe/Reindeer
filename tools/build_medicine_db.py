@@ -11,6 +11,7 @@ Output:
 
 Standard library only.
 """
+import collections
 import csv
 import gzip
 import os
@@ -28,7 +29,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, 'data')
 OUT = os.path.join(ROOT, 'assets', 'db', 'medicines.db')
 OUT_GZ = OUT + '.gz'  # the file the app bundles
-DB_VERSION = 2
+DB_VERSION = 4
 
 FORMS = [
     ('injection', r'injection|infusion|vial|ampoule|cartridge|pen\b|prefilled'),
@@ -165,6 +166,7 @@ def load_brands():
                 uses=list(dict.fromkeys(
                     u for u in (title_use(r.get(f'use{k}')) for k in range(5)) if u)),
                 nums=N.number_tokens(name, c1, c2),
+                fx=clean(r.get('Consolidated_Side_Effects')),
             ))
             seen[key] = len(rows) - 1
     return rows
@@ -205,6 +207,7 @@ CREATE TABLE condition(name TEXT PRIMARY KEY, freq INTEGER, aliases TEXT) WITHOU
 CREATE TABLE word_index(word TEXT NOT NULL, id INTEGER NOT NULL, PRIMARY KEY(word, id)) WITHOUT ROWID;
 CREATE TABLE vocab(word TEXT PRIMARY KEY, kind INTEGER, freq INTEGER) WITHOUT ROWID;
 CREATE INDEX medicine_ing ON medicine(ing);
+CREATE TABLE side_effect(ing TEXT PRIMARY KEY, effects TEXT) WITHOUT ROWID;
 '''
 
 
@@ -270,6 +273,14 @@ def main():
     db.executemany('INSERT INTO condition VALUES(?,?,?)',
                    [(n, f, aliases_for(n)) for n, f in best.values()])
     print(f'  {len(best)} conditions')
+    # Listed side effects per ingredient set: the most common text among products.
+    fx_by_ing = {}
+    for r in rows:
+        if r.get('fx') and r['ing']:
+            fx_by_ing.setdefault(' '.join(r['ing']), collections.Counter())[r['fx']] += 1
+    db.executemany('INSERT INTO side_effect VALUES(?,?)',
+                   [(k, c.most_common(1)[0][0]) for k, c in fx_by_ing.items()])
+    print(f'  {len(fx_by_ing)} side-effect entries')
     db.executemany('INSERT OR IGNORE INTO word_index VALUES(?,?)', idx_rows)
     db.executemany('INSERT INTO vocab VALUES(?,?,?)', [(w, k, f) for w, (k, f) in vocab.items()])
     db.commit()

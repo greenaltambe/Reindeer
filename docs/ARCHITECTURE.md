@@ -1,58 +1,75 @@
-# Architecture (v1)
+# Architecture (v2)
 
-Flutter + Material 3, Riverpod for state, go_router for navigation, sqflite for storage.
-Everything runs on the device; there is no backend.
+Flutter + Material 3, Riverpod for state, go_router for navigation, sqflite for local-only storage.
+Everything runs locally on the device; there is no backend server or cloud dependency. Fully compliant with India's DPDP Act.
 
 ## Layers
 
-Each feature folder follows `domain` (plain Dart models and rules), `data` (SQLite
-repositories), `application` (actions that change data), `presentation` (screens).
-Domain code has no Flutter or database imports, so it is easy to unit test.
+Each feature folder follows:
+- `domain`: Plain Dart models, business rules, and calculation engines. Free of Flutter and database imports for fast unit testing.
+- `data`: SQLite repositories, migrations, and query services.
+- `application`: State management, Riverpod providers, and coordinated actions.
+- `presentation`: Senior-friendly UI screens, high-contrast cards, and modal bottom sheets.
 
-## Two databases
+## Two Databases
 
-| Database | Where | Purpose |
+| Database | Location | Purpose |
 |---|---|---|
-| `medicines.db` | bundled as `assets/db/medicines.db.gz`, unpacked once on first launch (version marker in `medicine_database.dart`) | read-only: medicines, ingredient index, conditions |
-| `reindeer.db` | app databases folder, schema version 2 with `onUpgrade` | profile, conditions, plans, dose logs, refills, measurements, barcode links, settings |
+| `medicines.db` | Bundled as `assets/db/medicines.db.gz`, unpacked once on first launch (version marker in `medicine_database.dart`) | Read-only: medicines, ingredient index, and chronic conditions. Falls back gracefully if asset unpack fails. |
+| `reindeer.db` | App databases folder, SQLite Schema v6 with transactional `onUpgrade` | Profiles, plans, versioned plans (`plan_versions`), pause windows (`plan_pauses`), dose logs (`dose_logs`), miss reasons (`miss_reasons`), refills, measurements, allergies, symptoms, settings. |
 
-After every write, `dataVersionProvider` is bumped so providers that read the database
-refresh.
+After every data mutation, `dataVersionProvider` is bumped so Riverpod providers that read the database automatically refresh.
 
-## Doses and adherence
+---
 
-- A plan stores amounts per slot (morning / afternoon / night), meal timing, course dates,
-  pause window (`stoppedAt`, `resumedAt`) and stock.
-- Doses are **derived** from the plan and the person's meal times, never stored in advance.
-  Editing a plan therefore never rewrites history.
-- Only actions are stored in `dose_logs` (taken or skipped). A dose is "missed" if it is
-  more than 2 hours old with no log. Adherence = taken / (taken + skipped + missed).
-- Taking a dose reduces stock; low stock is flagged by a unit threshold or under 3 days.
+## Core Adherence Engine & Safety
 
-## Reminders (`features/reminders/reminder_service.dart`)
+### 1. Stable Dose Identity
+- **Dose Key:** Format is `$planId|$doseDate|${slot.name}` (e.g. `1|2026-10-12|morning`), replacing legacy clock-time keys (`planId|yyyy-MM-ddTHH:mm`).
+- **Meal-Time Shift Stability:** When a user alters their breakfast or dinner anchor in settings, the dose key does **not** change. Past doses logged as taken remain taken and are never orphaned.
+- **Legacy Compatibility:** `PlannedDose.parseKey` handles both modern 3-part keys and legacy 2-part keys.
 
-- `flutter_local_notifications` with exact alarms where allowed, otherwise inexact.
-- A rolling 7-day window is rescheduled on start, resume and after any change.
-- Taken / Skip / Snooze buttons work with the app open (foreground handler) and closed
-  (background isolate that opens the database itself).
-- Snooze ids end in 5-7 and survive a reschedule. Measurement reminders use ids
-  `9000000 + type * 10` and repeat daily or weekly.
+### 2. Versioned Medication Plans & Multiple Pause Windows
+- Historical doses must reflect the prescription in effect on that date.
+- `plan_versions` records `effective_from`, slot amounts (`morning`, `afternoon`, `night`), `meal_timing`, `interval_days`, `weekdays`, and `change_reason`.
+- `plan_pauses` records multiple distinct pause intervals (`paused_at`, `resumed_at`, `reason`).
+- `MedicationPlan.dosesOn(date, anchors)` resolves against the effective version on that date and suppresses doses if the date falls inside any active pause window.
 
-## Search
+### 3. Barrier-Aware Missed-Dose Reason Loop
+- When a dose is missed or skipped, Reindeer captures one of 6 barrier reasons:
+  1. `Forgot`: Routine habit anchoring tip (tie reminder to morning tea or meal).
+  2. `Ran out`: Immediate stock refill entry sheet.
+  3. `Side effect`: Clinical note capture for doctor consultation + doctor visit flag.
+  4. `Felt fine`: Clear asymptomatic education ("BP and diabetes medicines protect silent organs even when you feel well").
+  5. `Cost`: Pradhan Mantri Jan Aushadhi generic savings guidance (50–80% lower cost generic equivalents).
+  6. `Fasting / Travel`: Safe guidance on consulting doctor for schedule shifts rather than skipping.
 
-`medicine_search_service.dart` is a Dart port of `tools/search_reference.py`, checked by
-`test/search_parity_test.dart` against fixtures produced by the Python version. See
-`docs/DATA.md`. Conditions are searched by `condition_search_service.dart` (word-prefix
-match over names and everyday aliases such as "bp" or "sugar").
+### 4. Stock Forecasting & Refill Alerts
+- Daily consumption rate is calculated from slot amounts and interval days.
+- Run-out date is projected (`daysOfStockLeft = stock / dailyConsumption`).
+- Proactive low-stock warnings when stock is under 5 days.
+- Quick "I bought more" stock updates with one-pack presets.
 
-## Health tab
+### 5. Prescription Reconciliation & Diff
+- "Doctor changed my medicines" wizard compares current regimen against previous plans using `computePrescriptionDiff`.
+- Classifies changes into `Started`, `Adjusted`, `Stopped`, and `Unchanged`.
+- Saves adjustments to `plan_versions` so past history remains immutable and clean.
 
-`MeasureType` (weight, blood pressure, blood sugar, body fat, pulse) and `Measurement`
-live in `features/health/domain`. Blood pressure uses `value` and `value2`. Reminders are
-stored as settings keys `mrem_<type>` = `HH:MM|daily` or `HH:MM|w<weekday>`. Charts are a
-small custom painter (`trend_chart.dart`). Readings are never interpreted.
+### 6. One-Page Doctor-Visit Report
+- **Visual Calendar:** 30-day grid with dual encoding (color + pattern: `✓` taken, `✕` missed, `–` skipped/partial). Fully accessible for colorblind users and TalkBack screen readers.
+- **Reason Breakdown:** Summary counts of missed dose reasons and patient-recorded side effect notes.
+- **Prescription Changes:** Diff of changes made since last visit.
+- **Clinical Disclaimer:** Prominently marked: *"Self-recorded by patient/caregiver, not verified intake"*.
+- **Export / Share:** Formatted in professional English for sharing via WhatsApp, email, or clipboard.
 
-## Navigation
+---
 
-Five tabs (Today, Medicines, Health, Progress, Settings) in a `StatefulShellRoute`. The
-add-medicine wizard, scanner, onboarding and profile are full-screen routes.
+## 5-Tab Navigation Architecture
+
+The app shell organizes chronic disease management around the chronic care loop:
+
+1. **Today (`/`)**: Daily dosing actions, why-aware skip/miss capture, meal-time shift suggestions, and notification/alarm permission warning banner.
+2. **Medicines (`/medicines`)**: Current regimen, generic salt compositions, schedule adjustments, pause/resume, and "Doctor changed my medicines" wizard.
+3. **Refills (`/refills`)**: Stock counts, consumption rates, run-out forecasts, Jan Aushadhi generic hints, and "I bought more" quick entries.
+4. **Reports (`/reports`)**: One-page doctor report, 30-day visual adherence calendar, missed reasons breakdown, and access to Health Vitals & Readings (`/health`).
+5. **You (`/you`)**: Profile, meal anchors, OEM battery killer guidance, Language switcher (English, Hindi, Marathi), Medical ID, DPDP local data export & purge, and optional TB supporter mode.

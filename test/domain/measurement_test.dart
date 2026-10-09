@@ -53,4 +53,24 @@ void main() {
     expect(MeasureReminder.decode('8:00|w9'), isNull);
     expect(MeasureReminder.decode('garbage'), isNull);
   });
+
+  test('reminder remembers the day it was set and which days it covers', () {
+    final r = MeasureReminder(
+      minutes: 480,
+      weekday: 3,
+      since: DateTime(2026, 10, 7),
+    );
+    expect(r.encode(), '8:00|w3|2026-10-07');
+    final back = MeasureReminder.decode(r.encode())!;
+    expect(back.since, DateTime(2026, 10, 7));
+    expect(back.occursOn(DateTime(2026, 10, 7)), isTrue); // Wednesday
+    expect(back.occursOn(DateTime(2026, 10, 8)), isFalse);
+    expect(
+      const MeasureReminder(minutes: 0).occursOn(DateTime(2026, 10, 8)),
+      isTrue,
+    );
+    expect(MeasureReminder.decode('8:00|daily|not-a-date'), isNull);
+    // Old two-part values still work.
+    expect(MeasureReminder.decode('8:00|daily')!.since, isNull);
+  });
 }

@@ -35,6 +35,10 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            // R8 strips classes the notification plugin needs at run time, which
+            // silently breaks scheduled reminders in release builds.
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }

@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:reindeer/app.dart';
 import 'package:reindeer/core/database/app_database.dart';
 import 'package:reindeer/core/database/medicine_database.dart';
+import 'package:reindeer/core/i18n/language_provider.dart';
+import 'package:reindeer/core/i18n/strings.dart';
 import 'package:reindeer/core/router/app_router.dart';
 import 'package:reindeer/core/theme/app_theme.dart';
 import 'package:reindeer/core/theme/theme_provider.dart';
@@ -72,6 +74,7 @@ class _BootAppState extends State<BootApp> {
       );
       final appDb = await AppDatabase.open();
       final settings = SettingsRepository(appDb);
+      I18n.current = AppLanguage.fromCode(await settings.get(keyLanguage));
 
       final tzId = await initTimezone(
         stored: await settings.get(SettingsRepository.keyTimezone),

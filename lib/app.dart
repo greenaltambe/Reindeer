@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:reindeer/core/constants/app_constants.dart';
 import 'package:reindeer/core/database/app_database.dart';
+import 'package:reindeer/core/i18n/language_provider.dart';
 import 'package:reindeer/core/router/app_router.dart';
 import 'package:reindeer/core/theme/app_theme.dart';
 import 'package:reindeer/core/theme/theme_provider.dart';
 import 'package:reindeer/features/reminders/reminder_service.dart';
+import 'package:reindeer/features/widget/application/widget_sync.dart';
 
 /// Root application widget configuring routing and theming.
 ///
@@ -54,6 +57,8 @@ class _ReindeerAppState extends ConsumerState<ReindeerApp>
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(widgetSyncProvider);
+    final language = ref.watch(languageProvider);
     final router = ref.watch(appRouterProvider);
     final themeMode = ref.watch(themeModeProvider);
 
@@ -64,6 +69,18 @@ class _ReindeerAppState extends ConsumerState<ReindeerApp>
       darkTheme: AppTheme.dark,
       themeMode: themeMode,
       routerConfig: router,
+      locale: Locale(language.code),
+      supportedLocales: const [Locale('en'), Locale('hi'), Locale('mr')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      // A new key rebuilds every screen, so words already on screen change.
+      builder: (context, child) => KeyedSubtree(
+        key: ValueKey(language),
+        child: child ?? const SizedBox.shrink(),
+      ),
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:reindeer/core/constants/app_spacing.dart';
 import 'package:reindeer/core/utils/context_extensions.dart';
 import 'package:reindeer/features/conditions/data/condition_search_service.dart';
+import 'package:reindeer/core/i18n/strings.dart';
 
 /// Pick health conditions: shows chosen ones, quick suggestions, and a search
 /// box over the bundled condition list. Anything typed can also be added as-is.
@@ -84,8 +85,8 @@ class _ConditionPickerState extends ConsumerState<ConditionPicker> {
         TextField(
           controller: _controller,
           textInputAction: TextInputAction.done,
-          decoration: const InputDecoration(
-            hintText: 'Search, e.g. bp, sugar, asthma',
+          decoration: InputDecoration(
+            hintText: tr('Search, e.g. bp, sugar, asthma'),
             prefixIcon: Icon(Icons.search),
           ),
           onChanged: (_) => setState(() {}),
@@ -107,12 +108,12 @@ class _ConditionPickerState extends ConsumerState<ConditionPicker> {
             dense: true,
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.edit_outlined),
-            title: Text('Add "$query"'),
+            title: Text(trf('Add "{n}"', {'n': query})),
             onTap: () => _add(query),
           ),
         ] else ...[
           if (suggestions.isNotEmpty) ...[
-            Text(widget.suggestionsTitle, style: t.titleMedium),
+            Text(tr(widget.suggestionsTitle), style: t.titleMedium),
             const SizedBox(height: AppSpacing.xs),
             Wrap(
               spacing: AppSpacing.xs,
@@ -125,7 +126,7 @@ class _ConditionPickerState extends ConsumerState<ConditionPicker> {
             const SizedBox(height: AppSpacing.md),
           ],
           if (popular.isNotEmpty) ...[
-            Text('Common', style: t.titleMedium),
+            Text(tr('Common'), style: t.titleMedium),
             const SizedBox(height: AppSpacing.xs),
             Wrap(
               spacing: AppSpacing.xs,

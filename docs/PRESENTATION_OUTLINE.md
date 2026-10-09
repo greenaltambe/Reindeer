@@ -18,7 +18,7 @@ Draft for the Oct 10 presentation. Adjust after the app has been run on a phone.
 7. **Reliability.** Doses are derived from the plan, so editing a plan never rewrites history; missed doses are computed, not stored; reminders are rescheduled on every change and app open.
 8. **Privacy and safety.** Everything on device; disclaimer: a reminder tool, not medical advice; dataset licence caveat.
 9. **Demo** (below).
-10. **Limits and next steps.** Barcode learning needs one manual link per pack (no public barcode-to-medicine list), iOS not tested, caregiver profiles, refill prediction, OCR of the label.
+10. **Limits and next steps.** iOS not tested, caregiver profiles, refill prediction, OCR of the strip name. Barcode scanning was tried and dropped: no public barcode list, and pack QR codes vary by manufacturer.
 
 ## Demo script (about 3 minutes)
 
@@ -28,7 +28,7 @@ Draft for the Oct 10 presentation. Adjust after the app has been run on a phone.
 4. Show the reminder: change breakfast time in Settings and show reminders move. Send a test reminder; tap Taken from the notification.
 5. Show Progress and "copy summary for my doctor".
 6. Tap the reindeer (easter egg).
-7. Optional: scan a pack, link it, scan again.
+7. Type `dolo 650 1-0-1 after food 5d`, pick the medicine, show the review page, and the same-ingredient warning.
 
 ## Questions to expect
 

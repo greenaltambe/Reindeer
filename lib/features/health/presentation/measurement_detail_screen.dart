@@ -5,14 +5,16 @@ import 'package:reindeer/core/constants/app_spacing.dart';
 import 'package:reindeer/core/database/app_database.dart';
 import 'package:reindeer/core/utils/context_extensions.dart';
 import 'package:reindeer/core/utils/date_time_utils.dart';
+import 'package:reindeer/features/health/application/measure_reminder_actions.dart';
 import 'package:reindeer/features/health/data/measurement_repository.dart';
 import 'package:reindeer/features/health/domain/measure_type.dart';
+import 'package:reindeer/features/health/domain/reading_insight.dart';
+import 'package:reindeer/features/health/presentation/reading_flag_card.dart';
 import 'package:reindeer/features/health/presentation/health_screen.dart';
 import 'package:reindeer/features/health/presentation/trend_chart.dart';
 import 'package:reindeer/features/profile/data/profile_repository.dart';
-import 'package:reindeer/features/reminders/reminder_service.dart';
-import 'package:reindeer/features/settings/data/settings_repository.dart';
 import 'package:reindeer/shared/widgets/choice_tile.dart';
+import 'package:reindeer/core/i18n/strings.dart';
 
 /// History, trend and reminder for one kind of reading.
 class MeasurementDetailScreen extends ConsumerStatefulWidget {
@@ -44,21 +46,7 @@ class _MeasurementDetailScreenState
       builder: (_) => _ReminderSheet(type: type, current: current),
     );
     if (result == null) return;
-    await ref
-        .read(settingsRepositoryProvider)
-        .set(
-          MeasureReminder.settingsKey(type),
-          result.reminder?.encode() ?? '',
-        );
-    ref.read(dataVersionProvider.notifier).bump();
-    try {
-      if (result.reminder != null) {
-        await ref.read(reminderServiceProvider).requestPermissions();
-      }
-      await ref.read(reminderServiceProvider).rescheduleAll();
-    } catch (_) {
-      // Saved; reminders can be re-synced on next start.
-    }
+    await ref.read(measureReminderActionsProvider).set(type, result.reminder);
   }
 
   @override
@@ -82,6 +70,14 @@ class _MeasurementDetailScreenState
         ? bmi(all.first.value, profile?.heightCm)
         : null;
 
+    final latestFlag =
+        all.isNotEmpty && now.difference(all.first.at).inDays <= 3
+        ? assessReading(
+            all.first,
+            all.skip(1).take(12).toList().reversed.toList(),
+          )
+        : null;
+
     String range(({double min, double avg, double max}) v) =>
         '${type.formatValue(v.min)} to ${type.formatValue(v.max)}';
 
@@ -90,16 +86,20 @@ class _MeasurementDetailScreenState
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push('/health/${type.name}/add'),
         icon: const Icon(Icons.add),
-        label: const Text('Add reading'),
+        label: Text(tr('Add reading')),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(AppSpacing.md, 0, AppSpacing.md, 96),
         children: [
+          if (latestFlag != null) ...[
+            ReadingFlagCard(flag: latestFlag),
+            const SizedBox(height: AppSpacing.sm),
+          ],
           SegmentedButton<int>(
-            segments: const [
-              ButtonSegment(value: 30, label: Text('30 days')),
-              ButtonSegment(value: 90, label: Text('90 days')),
-              ButtonSegment(value: 0, label: Text('All')),
+            segments: [
+              ButtonSegment(value: 30, label: Text(tr('30 days'))),
+              ButtonSegment(value: 90, label: Text(tr('90 days'))),
+              ButtonSegment(value: 0, label: Text(tr('All'))),
             ],
             selected: {_days},
             onSelectionChanged: (v) => setState(() => _days = v.first),
@@ -115,7 +115,7 @@ class _MeasurementDetailScreenState
                       ),
                       child: Center(
                         child: Text(
-                          'No readings in this period.',
+                          tr('No readings in this period.'),
                           style: t.bodyLarge,
                         ),
                       ),
@@ -160,14 +160,14 @@ class _MeasurementDetailScreenState
               ),
               title: Text(
                 reminder == null
-                    ? 'Remind me to measure'
+                    ? tr('Remind me to measure')
                     : _reminderText(reminder),
               ),
               trailing: const Icon(Icons.chevron_right),
               onTap: _setReminder,
             ),
           ),
-          const SectionTitle('History'),
+          SectionTitle(tr('History')),
           if (all.isEmpty)
             Text(type.hint, style: t.bodyLarge)
           else
@@ -195,7 +195,7 @@ class _MeasurementDetailScreenState
                     '${m.note == null || m.note!.isEmpty ? '' : ' · ${m.note}'}',
                   ),
                   trailing: IconButton(
-                    tooltip: 'Delete',
+                    tooltip: tr('Delete'),
                     icon: const Icon(Icons.delete_outline),
                     onPressed: () => _delete(m),
                   ),
@@ -207,17 +207,19 @@ class _MeasurementDetailScreenState
   }
 
   String _reminderText(MeasureReminder r) {
-    const days = [
+    final days = [
       '',
-      'Monday',
-      'Tuesday',
-      'Wednesday',
-      'Thursday',
-      'Friday',
-      'Saturday',
-      'Sunday',
+      tr('Monday'),
+      tr('Tuesday'),
+      tr('Wednesday'),
+      tr('Thursday'),
+      tr('Friday'),
+      tr('Saturday'),
+      tr('Sunday'),
     ];
-    final when = r.weekday == null ? 'Every day' : 'Every ${days[r.weekday!]}';
+    final when = r.weekday == null
+        ? tr('Every day')
+        : trf('Every {n}', {'n': days[r.weekday!]});
     return '$when at ${formatMinutes(r.minutes)}';
   }
 }
@@ -243,7 +245,15 @@ class _ReminderSheetState extends State<_ReminderSheet> {
 
   @override
   Widget build(BuildContext context) {
-    const names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final names = [
+      tr('Mon'),
+      tr('Tue'),
+      tr('Wed'),
+      tr('Thu'),
+      tr('Fri'),
+      tr('Sat'),
+      tr('Sun'),
+    ];
     return Padding(
       padding: EdgeInsets.fromLTRB(
         AppSpacing.lg,
@@ -256,7 +266,9 @@ class _ReminderSheetState extends State<_ReminderSheet> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Remind me to measure ${widget.type.label.toLowerCase()}',
+            trf('Remind me to measure {n}', {
+              'n': widget.type.label.toLowerCase(),
+            }),
             style: context.textTheme.titleLarge,
           ),
           const SizedBox(height: AppSpacing.md),
@@ -282,7 +294,7 @@ class _ReminderSheetState extends State<_ReminderSheet> {
             spacing: AppSpacing.xs,
             children: [
               ChoiceChip(
-                label: const Text('Every day'),
+                label: Text(tr('Every day')),
                 selected: _weekday == null,
                 onSelected: (_) => setState(() => _weekday = null),
               ),
@@ -301,7 +313,7 @@ class _ReminderSheetState extends State<_ReminderSheet> {
                 TextButton(
                   onPressed: () =>
                       Navigator.pop(context, const _ReminderResult(null)),
-                  child: const Text('Turn off'),
+                  child: Text(tr('Turn off')),
                 ),
               const Spacer(),
               FilledButton(
@@ -311,7 +323,7 @@ class _ReminderSheetState extends State<_ReminderSheet> {
                     MeasureReminder(minutes: _minutes, weekday: _weekday),
                   ),
                 ),
-                child: const Text('Save'),
+                child: Text(tr('Save')),
               ),
             ],
           ),

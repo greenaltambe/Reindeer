@@ -290,6 +290,41 @@ class MedicineSearchService {
     return rows.map(_toHit).toList();
   }
 
+  /// The ingredient key of a medicine (space separated words), or ''.
+  Future<String> ingredientsOf(int id) async {
+    final rows = await _db.rawQuery('SELECT ing FROM medicine WHERE id = ?', [
+      id,
+    ]);
+    return rows.isEmpty ? '' : ((rows.first['ing'] as String?) ?? '');
+  }
+
+  /// Ingredient names starting with [prefix], most common first.
+  List<String> suggestIngredients(String prefix, {int limit = 6}) {
+    final p = prefix.trim().toLowerCase();
+    if (p.length < 2) return const [];
+    final out = [
+      for (final w in _ingWords)
+        if (w.length >= 4 && w.startsWith(p) && (_vocab[w]?.freq ?? 0) >= 5) w,
+    ]..sort((a, b) => (_vocab[b]?.freq ?? 0).compareTo(_vocab[a]?.freq ?? 0));
+    return out.take(limit).toList();
+  }
+
+  /// Side effects listed in the data for an ingredient key (space separated
+  /// words, as returned by [ingredientsOf]); '' when none are known.
+  Future<String> sideEffectsFor(String ingredientKey) async {
+    if (ingredientKey.isEmpty) return '';
+    try {
+      final rows = await _db.rawQuery(
+        'SELECT effects FROM side_effect WHERE ing = ?',
+        [ingredientKey],
+      );
+      return rows.isEmpty ? '' : ((rows.first['effects'] as String?) ?? '');
+    } catch (_) {
+      // An older database without the table: no side-effect data.
+      return '';
+    }
+  }
+
   /// Looks up one medicine by id (used when re-opening a plan).
   Future<MedicineHit?> byId(int id) async {
     final rows = await _db.rawQuery(

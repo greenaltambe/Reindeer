@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:reindeer/core/i18n/strings.dart';
 
 /// Bottom navigation around the five main tabs.
 class AppShell extends StatelessWidget {
@@ -17,31 +18,31 @@ class AppShell extends StatelessWidget {
           i,
           initialLocation: i == navigationShell.currentIndex,
         ),
-        destinations: const [
+        destinations: [
           NavigationDestination(
             icon: Icon(Icons.today_outlined),
             selectedIcon: Icon(Icons.today),
-            label: 'Today',
+            label: tr('Today'),
           ),
           NavigationDestination(
             icon: Icon(Icons.medication_outlined),
             selectedIcon: Icon(Icons.medication),
-            label: 'Medicines',
+            label: tr('Medicines'),
           ),
           NavigationDestination(
-            icon: Icon(Icons.monitor_heart_outlined),
-            selectedIcon: Icon(Icons.monitor_heart),
-            label: 'Health',
+            icon: Icon(Icons.inventory_2_outlined),
+            selectedIcon: Icon(Icons.inventory_2),
+            label: tr('Refills'),
           ),
           NavigationDestination(
-            icon: Icon(Icons.insights_outlined),
-            selectedIcon: Icon(Icons.insights),
-            label: 'Progress',
+            icon: Icon(Icons.summarize_outlined),
+            selectedIcon: Icon(Icons.summarize),
+            label: tr('Reports'),
           ),
           NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings),
-            label: 'Settings',
+            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person),
+            label: tr('You'),
           ),
         ],
       ),

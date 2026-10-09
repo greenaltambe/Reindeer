@@ -1,5 +1,6 @@
 import 'package:reindeer/core/utils/date_time_utils.dart';
 import 'package:reindeer/features/adherence/domain/dose_timeline.dart';
+import 'package:reindeer/features/adherence/domain/models/miss_reason.dart';
 import 'package:reindeer/features/medications/domain/models/dose_unit.dart';
 import 'package:reindeer/features/medications/domain/models/medication_plan.dart';
 
@@ -12,18 +13,26 @@ String buildDoctorSummary({
   required DateTime now,
   List<String> readings = const [],
   List<String> conditions = const [],
+  List<String> allergies = const [],
+  List<String> symptoms = const [],
+  Map<MissReasonType, int> missReasons = const {},
+  List<String> missNotes = const [],
+  List<String> prescriptionChanges = const [],
 }) {
   final b = StringBuffer()
     ..writeln('Reindeer medicine summary')
     ..writeln('Date: ${formatLongDate(now)}')
     ..writeln('Period: last $days days')
+    ..writeln('Self-recorded, not verified intake')
     ..writeln();
 
   if (conditions.isNotEmpty) {
-    b
-      ..writeln('Conditions: ${conditions.join(', ')}')
-      ..writeln();
+    b.writeln('Conditions: ${conditions.join(', ')}');
   }
+  if (allergies.isNotEmpty) {
+    b.writeln('Allergies: ${allergies.join(', ')}');
+  }
+  if (conditions.isNotEmpty || allergies.isNotEmpty) b.writeln();
   final active = plans.where((p) => p.isActive).toList();
   b.writeln('Current medicines');
   if (active.isEmpty) {
@@ -63,8 +72,46 @@ String buildDoctorSummary({
     }
   }
 
+  if (symptoms.isNotEmpty) {
+    b
+      ..writeln()
+      ..writeln('Symptoms I noted');
+    for (final line in symptoms) {
+      b.writeln('- $line');
+    }
+  }
+
+  if (missReasons.isNotEmpty) {
+    b
+      ..writeln()
+      ..writeln('Missed dose reasons breakdown');
+    for (final entry in missReasons.entries) {
+      b.writeln('- ${entry.key.label}: ${entry.value}');
+    }
+  }
+
+  if (missNotes.isNotEmpty) {
+    b
+      ..writeln()
+      ..writeln('Patient notes & side effects');
+    for (final note in missNotes) {
+      b.writeln('- $note');
+    }
+  }
+
+  if (prescriptionChanges.isNotEmpty) {
+    b
+      ..writeln()
+      ..writeln('Prescription changes since last visit');
+    for (final change in prescriptionChanges) {
+      b.writeln('- $change');
+    }
+  }
+
   b
     ..writeln()
-    ..writeln('Based on doses marked in a reminder app; not a medical record.');
+    ..writeln(
+      'Self-recorded by patient/caregiver; not a verified clinical record.',
+    );
   return b.toString();
 }

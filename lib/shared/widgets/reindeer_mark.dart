@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:reindeer/core/utils/context_extensions.dart';
 import 'package:reindeer/core/utils/reindeer_voice.dart';
+import 'package:reindeer/core/i18n/strings.dart';
 
 /// The Reindeer mascot: a friendly face with antlers, drawn in code.
 ///
@@ -53,7 +54,7 @@ class _ReindeerMarkState extends State<ReindeerMark> {
     if (!widget.interactive) return ExcludeSemantics(child: mark);
     return Semantics(
       button: true,
-      label: 'Reindeer mascot',
+      label: tr('Reindeer mascot'),
       child: GestureDetector(onTap: _onTap, child: mark),
     );
   }

@@ -71,3 +71,28 @@ final upcomingEntriesProvider = FutureProvider<List<DoseEntry>>((ref) async {
   final today = dateOnly(now);
   return _entries(ref, today, nextDay(today), now);
 });
+
+/// Doses on one day (a date at midnight). Past days show missed doses, future
+/// days show everything as still to come.
+final dayEntriesProvider = FutureProvider.family<List<DoseEntry>, DateTime>((
+  ref,
+  day,
+) async {
+  ref.watch(dataVersionProvider);
+  final now = ref.watch(clockProvider).value ?? DateTime.now();
+  final d = dateOnly(day);
+  return _entries(ref, d, d, now);
+});
+
+/// Doses for the seven days starting at [weekStart] (used by the calendar strip
+/// to show how each day went).
+final weekEntriesProvider = FutureProvider.family<List<DoseEntry>, DateTime>((
+  ref,
+  weekStart,
+) async {
+  ref.watch(dataVersionProvider);
+  final now = ref.watch(clockProvider).value ?? DateTime.now();
+  final from = dateOnly(weekStart);
+  final to = DateTime(from.year, from.month, from.day + 6);
+  return _entries(ref, from, to, now);
+});
