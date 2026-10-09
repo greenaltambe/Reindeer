@@ -35,7 +35,8 @@ class _YearWheelPickerState extends State<YearWheelPicker> {
   @override
   void initState() {
     super.initState();
-    final initial = widget.selectedYear ?? (DateTime.now().year - 45); // default ~45 yo
+    final initial =
+        widget.selectedYear ?? (DateTime.now().year - 45); // default ~45 yo
     _currentIndex = _years.indexOf(initial);
     if (_currentIndex < 0) _currentIndex = _years.indexOf(1975);
     if (_currentIndex < 0) _currentIndex = 0;
@@ -99,10 +100,16 @@ class _YearWheelPickerState extends State<YearWheelPicker> {
                         children: [
                           Text(
                             '$year',
-                            style: (isSelected ? t.headlineSmall : t.titleMedium)?.copyWith(
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              color: isSelected ? scheme.primary : scheme.outline,
-                            ),
+                            style:
+                                (isSelected ? t.headlineSmall : t.titleMedium)
+                                    ?.copyWith(
+                                      fontWeight: isSelected
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                      color: isSelected
+                                          ? scheme.primary
+                                          : scheme.outline,
+                                    ),
                           ),
                           const SizedBox(width: 8),
                           Text(
@@ -111,7 +118,9 @@ class _YearWheelPickerState extends State<YearWheelPicker> {
                               color: isSelected
                                   ? scheme.onPrimaryContainer
                                   : scheme.outlineVariant,
-                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
                             ),
                           ),
                         ],

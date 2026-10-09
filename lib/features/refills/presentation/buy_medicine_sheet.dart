@@ -72,9 +72,7 @@ class _BuyMedicineView extends StatelessWidget {
                         if (hasSalt)
                           Text(
                             plan.composition,
-                            style: t.bodySmall?.copyWith(
-                              color: scheme.outline,
-                            ),
+                            style: t.bodySmall?.copyWith(color: scheme.outline),
                           ),
                       ],
                     ),
@@ -170,16 +168,16 @@ class _BuyMedicineView extends StatelessWidget {
               ),
               const SizedBox(height: 8),
 
-              // Store Option: Apollo 24/7
+              // Store Option: Apollo Pharmacy
               _StoreListTile(
-                title: 'Apollo 24/7',
+                title: 'Apollo Pharmacy',
                 subtitle: tr('Express delivery from Apollo Pharmacy'),
                 icon: Icons.local_hospital_outlined,
                 badge: tr('Fast'),
                 badgeColor: Colors.teal,
                 onTap: () {
                   PharmacyStoreService.openStore(
-                    store: PharmacyStore.apollo247,
+                    store: PharmacyStore.apollo,
                     query: plan.name,
                     composition: plan.composition,
                   );

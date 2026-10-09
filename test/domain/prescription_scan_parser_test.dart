@@ -26,7 +26,9 @@ Signature: Dr. Sharma
       expect(items.length, 4);
 
       // Telma 40
-      final telma = items.firstWhere((i) => i.name.toLowerCase().contains('telma'));
+      final telma = items.firstWhere(
+        (i) => i.name.toLowerCase().contains('telma'),
+      );
       expect(telma.amountMorning, 1.0);
       expect(telma.amountAfternoon, 0.0);
       expect(telma.amountNight, 0.0);
@@ -34,7 +36,9 @@ Signature: Dr. Sharma
       expect(telma.unit, DoseUnit.tablet);
 
       // Glycomet 500 SR
-      final glycomet = items.firstWhere((i) => i.name.toLowerCase().contains('glycomet'));
+      final glycomet = items.firstWhere(
+        (i) => i.name.toLowerCase().contains('glycomet'),
+      );
       expect(glycomet.amountMorning, 1.0);
       expect(glycomet.amountAfternoon, 0.0);
       expect(glycomet.amountNight, 1.0);
@@ -42,13 +46,17 @@ Signature: Dr. Sharma
       expect(glycomet.durationDays, 30);
 
       // Omeprazole
-      final omeprazole = items.firstWhere((i) => i.name.toLowerCase().contains('omeprazole'));
+      final omeprazole = items.firstWhere(
+        (i) => i.name.toLowerCase().contains('omeprazole'),
+      );
       expect(omeprazole.unit, DoseUnit.capsule);
       expect(omeprazole.amountMorning, 1.0);
       expect(omeprazole.mealTiming, MealTiming.beforeFood);
 
       // Rosuvas 10
-      final rosuvas = items.firstWhere((i) => i.name.toLowerCase().contains('rosuvas'));
+      final rosuvas = items.firstWhere(
+        (i) => i.name.toLowerCase().contains('rosuvas'),
+      );
       expect(rosuvas.amountNight, 1.0);
     });
 
@@ -82,7 +90,42 @@ Weight: 68 kg, Pulse: 72 bpm
       expect(pcm.durationDays, 3);
 
       final cet = items[1];
-      expect(cet.amountMorning, 1.0);
+      expect(cet.amountMorning, 0.0);
+      expect(cet.amountNight, 1.0);
+    });
+
+    test('reads OCR-damaged dose patterns and abbreviations', () {
+      String n(String s) => PrescriptionScanParser.normalizeOcrLine(s);
+      expect(n('Tab Pan 40 1-O-1'), 'Tab Pan 40 1-0-1');
+      expect(n('Tab Pan 40 l - 0 - l'), 'Tab Pan 40 1-0-1');
+      expect(n('Tab Pan 40 1–0–1'), 'Tab Pan 40 1-0-1');
+      expect(n('Glyc0met 500'), 'Glycomet 500');
+      expect(n('Telma 40 1-0-0 b/f x5/7'), 'Telma 40 1-0-0 before food x 5d');
+      expect(n('Azee 500 once a day x 3/7'), 'Azee 500 od x 3d');
+    });
+
+    test('takes the dose from a row of its own', () async {
+      const rx = '''
+Tab Glycomet 500 SR
+1-0-1 after food x 30 days
+Tab Telma 40 1-0-0
+''';
+      final items = await PrescriptionScanParser.parse(rx);
+      expect(items.length, 2);
+      expect(items[0].scheduleLabel, '1-0-1 · After food · 30 days');
+      expect(items[1].scheduleLabel, '1-0-0 · After food');
+    });
+
+    test('ignores advice lines and keeps T. / C. prefixed lines', () async {
+      const rx = '''
+T. Pan 40 1-0-0 before food
+C. Becosules 0-1-0
+Adv: plenty of fluids, rest
+Avoid oily and spicy food
+''';
+      final items = await PrescriptionScanParser.parse(rx);
+      expect(items.map((i) => i.name), ['Pan 40', 'Becosules']);
+      expect(items[1].unit, DoseUnit.capsule);
     });
   });
 }

@@ -101,8 +101,7 @@ class _PrescriptionScanReviewScreenState
                   borderRadius: AppSpacing.borderRadiusMd,
                 ),
                 leading: CircleAvatar(
-                  backgroundColor:
-                      context.colorScheme.surfaceContainerHighest,
+                  backgroundColor: context.colorScheme.surfaceContainerHighest,
                   child: Icon(
                     Icons.photo_library_rounded,
                     color: context.colorScheme.onSurface,
@@ -134,7 +133,7 @@ class _PrescriptionScanReviewScreenState
     setState(() => _scanning = true);
 
     try {
-      final rawText = await scanPackageText(source);
+      final rawText = await scanPrescriptionText(source);
       if (!mounted) return;
       if (rawText == null || rawText.trim().isEmpty) {
         setState(() {
@@ -260,9 +259,7 @@ class _PrescriptionScanReviewScreenState
                   const SizedBox(height: AppSpacing.md),
                   Text(
                     tr('Reading your prescription...'),
-                    style: t.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: t.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -273,118 +270,117 @@ class _PrescriptionScanReviewScreenState
               ),
             )
           : _items.isEmpty
-              ? EmptyStateView(
-                  title: tr('No medicines found'),
-                  message: tr(
-                    'Doctor handwriting can sometimes be unclear. Try a closer, well-lit photo, or add medicines directly.',
+          ? EmptyStateView(
+              title: tr('No medicines found'),
+              message: tr(
+                'Doctor handwriting can sometimes be unclear. Try a closer, well-lit photo, or add medicines directly.',
+              ),
+              illustration: const ReindeerMark(size: 80, interactive: true),
+              actionLabel: tr('Try photo again'),
+              onAction: _startScan,
+            )
+          : Column(
+              children: [
+                // Top banner for elderly clarity
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: 12,
                   ),
-                  illustration:
-                      const ReindeerMark(size: 80, interactive: true),
-                  actionLabel: tr('Try photo again'),
-                  onAction: _startScan,
-                )
-              : Column(
-                  children: [
-                    // Top banner for elderly clarity
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md,
-                        vertical: 12,
+                  color: scheme.primaryContainer.withValues(alpha: 0.35),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.check_circle_outline,
+                        color: scheme.primary,
+                        size: 22,
                       ),
-                      color: scheme.primaryContainer.withValues(alpha: 0.35),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.check_circle_outline,
-                            color: scheme.primary,
-                            size: 22,
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          trn(
+                            _items.length,
+                            'Found {n} medicine. Select the ones you want to add:',
+                            'Found {n} medicines. Select the ones you want to add:',
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              trn(
-                                _items.length,
-                                'Found {n} medicine. Select the ones you want to add:',
-                                'Found {n} medicines. Select the ones you want to add:',
-                              ),
-                              style: t.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                          style: t.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
                           ),
-                        ],
-                      ),
-                    ),
-
-                    Expanded(
-                      child: ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(
-                          AppSpacing.md,
-                          AppSpacing.sm,
-                          AppSpacing.md,
-                          AppSpacing.lg,
-                        ),
-                        itemCount: _items.length,
-                        itemBuilder: (context, index) {
-                          final item = _items[index];
-                          return _ScannedItemCard(
-                            item: item,
-                            onToggle: (val) {
-                              setState(() => item.isSelected = val ?? false);
-                            },
-                            onEdit: () => _editItem(item),
-                          );
-                        },
-                      ),
-                    ),
-
-                    // Bottom Save Bar
-                    SafeArea(
-                      top: false,
-                      child: Container(
-                        padding: const EdgeInsets.all(AppSpacing.md),
-                        decoration: BoxDecoration(
-                          color: scheme.surface,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.05),
-                              blurRadius: 8,
-                              offset: const Offset(0, -2),
-                            ),
-                          ],
-                        ),
-                        child: FilledButton(
-                          style: FilledButton.styleFrom(
-                            minimumSize: const Size.fromHeight(54),
-                          ),
-                          onPressed: _saving || selectedCount == 0
-                              ? null
-                              : _saveSelected,
-                          child: _saving
-                              ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : Text(
-                                  trn(
-                                    selectedCount,
-                                    'Add {n} medicine to Reindeer',
-                                    'Add {n} medicines to Reindeer',
-                                  ),
-                                  style: t.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
+
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.md,
+                      AppSpacing.sm,
+                      AppSpacing.md,
+                      AppSpacing.lg,
+                    ),
+                    itemCount: _items.length,
+                    itemBuilder: (context, index) {
+                      final item = _items[index];
+                      return _ScannedItemCard(
+                        item: item,
+                        onToggle: (val) {
+                          setState(() => item.isSelected = val ?? false);
+                        },
+                        onEdit: () => _editItem(item),
+                      );
+                    },
+                  ),
+                ),
+
+                // Bottom Save Bar
+                SafeArea(
+                  top: false,
+                  child: Container(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    decoration: BoxDecoration(
+                      color: scheme.surface,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 8,
+                          offset: const Offset(0, -2),
+                        ),
+                      ],
+                    ),
+                    child: FilledButton(
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(54),
+                      ),
+                      onPressed: _saving || selectedCount == 0
+                          ? null
+                          : _saveSelected,
+                      child: _saving
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Text(
+                              trn(
+                                selectedCount,
+                                'Add {n} medicine to Reindeer',
+                                'Add {n} medicines to Reindeer',
+                              ),
+                              style: t.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
     );
   }
 }
@@ -410,9 +406,7 @@ class _ScannedItemCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       shape: RoundedRectangleBorder(
         side: BorderSide(
-          color: item.isSelected
-              ? scheme.primary
-              : scheme.outlineVariant,
+          color: item.isSelected ? scheme.primary : scheme.outlineVariant,
           width: item.isSelected ? 1.5 : 1,
         ),
         borderRadius: AppSpacing.borderRadiusMd,
@@ -425,10 +419,7 @@ class _ScannedItemCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Checkbox(
-                value: item.isSelected,
-                onChanged: onToggle,
-              ),
+              Checkbox(value: item.isSelected, onChanged: onToggle),
               const SizedBox(width: 4),
               Expanded(
                 child: Column(
@@ -454,6 +445,30 @@ class _ScannedItemCard extends StatelessWidget {
                           ),
                         ),
                       ),
+                    if (!item.isMatched)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2, bottom: 4),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.help_outline_rounded,
+                              size: 16,
+                              color: scheme.error,
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                tr(
+                                  'Not found in medicine list. Tap edit to check the name.',
+                                ),
+                                style: t.bodySmall?.copyWith(
+                                  color: scheme.error,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     const SizedBox(height: 4),
                     // Schedule Badges
                     Wrap(
@@ -462,17 +477,20 @@ class _ScannedItemCard extends StatelessWidget {
                       children: [
                         if (item.amountMorning > 0)
                           _Badge(
-                            label: '☀️ Morning: ${ScannedPrescriptionItem.fmt(item.amountMorning)}',
+                            label:
+                                '☀️ Morning: ${ScannedPrescriptionItem.fmt(item.amountMorning)}',
                             color: Colors.amber.shade800,
                           ),
                         if (item.amountAfternoon > 0)
                           _Badge(
-                            label: '🌤️ Afternoon: ${ScannedPrescriptionItem.fmt(item.amountAfternoon)}',
+                            label:
+                                '🌤️ Afternoon: ${ScannedPrescriptionItem.fmt(item.amountAfternoon)}',
                             color: Colors.orange.shade800,
                           ),
                         if (item.amountNight > 0)
                           _Badge(
-                            label: '🌙 Night: ${ScannedPrescriptionItem.fmt(item.amountNight)}',
+                            label:
+                                '🌙 Night: ${ScannedPrescriptionItem.fmt(item.amountNight)}',
                             color: Colors.indigo.shade700,
                           ),
                         _Badge(
@@ -486,12 +504,22 @@ class _ScannedItemCard extends StatelessWidget {
                           ),
                       ],
                     ),
+                    if (item.sourceText.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(
+                          trf('Read as: {n}', {'n': item.sourceText}),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: t.bodySmall?.copyWith(color: scheme.outline),
+                        ),
+                      ),
                   ],
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.tune_rounded),
-                tooltip: tr('Edit dose timing'),
+                icon: const Icon(Icons.edit_outlined),
+                tooltip: tr('Edit medicine'),
                 onPressed: onEdit,
               ),
             ],
@@ -528,100 +556,192 @@ class _Badge extends StatelessWidget {
   }
 }
 
-class _EditItemSheet extends StatefulWidget {
+class _EditItemSheet extends ConsumerStatefulWidget {
   const _EditItemSheet({required this.item});
 
   final ScannedPrescriptionItem item;
 
   @override
-  State<_EditItemSheet> createState() => _EditItemSheetState();
+  ConsumerState<_EditItemSheet> createState() => _EditItemSheetState();
 }
 
-class _EditItemSheetState extends State<_EditItemSheet> {
+class _EditItemSheetState extends ConsumerState<_EditItemSheet> {
   late double _m = widget.item.amountMorning;
   late double _a = widget.item.amountAfternoon;
   late double _n = widget.item.amountNight;
   late MealTiming _timing = widget.item.mealTiming;
+  late final _nameController = TextEditingController(text: widget.item.name);
+  late MedicineHit? _hit = widget.item.hit;
+  List<MedicineHit> _results = const [];
+  int _searchId = 0;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _search(String query) async {
+    final id = ++_searchId;
+    setState(() => _hit = null);
+    if (query.trim().length < 2) {
+      setState(() => _results = const []);
+      return;
+    }
+    final service = await ref.read(medicineSearchProvider.future);
+    final hits = await service.search(query, asYouType: true, limit: 6);
+    if (!mounted || id != _searchId) return;
+    setState(() => _results = hits);
+  }
+
+  void _pick(MedicineHit hit) {
+    _searchId++;
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _hit = hit;
+      _nameController.text = hit.name;
+      _results = const [];
+    });
+  }
+
+  void _save() {
+    final item = widget.item;
+    final typed = _nameController.text.trim();
+    final hit = _hit;
+    if (hit != null) {
+      item.hit = hit;
+      item.name = hit.name;
+      item.composition = hit.composition;
+      item.unit = DoseUnit.fromForm(hit.form);
+    } else if (typed.isNotEmpty && typed != item.name) {
+      item.hit = null;
+      item.name = typed;
+      item.composition = '';
+    }
+    item.slotAmounts = {
+      DaySlot.morning: _m,
+      DaySlot.afternoon: _a,
+      DaySlot.night: _n,
+    };
+    item.mealTiming = _timing;
+    item.isSelected = true;
+    Navigator.pop(context, item);
+  }
 
   @override
   Widget build(BuildContext context) {
     final t = context.textTheme;
+    final scheme = context.colorScheme;
 
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(
+        padding: EdgeInsets.fromLTRB(
           AppSpacing.md,
           0,
           AppSpacing.md,
-          AppSpacing.lg,
+          AppSpacing.lg + MediaQuery.viewInsetsOf(context).bottom,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              widget.item.name,
-              style: t.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Text(tr('Dose amount per time:'), style: t.titleSmall),
-            const SizedBox(height: AppSpacing.xs),
-            _SlotStepper(
-              label: tr('Morning'),
-              icon: Icons.wb_sunny_outlined,
-              value: _m,
-              unit: widget.item.unit.label,
-              onChanged: (v) => setState(() => _m = v),
-            ),
-            _SlotStepper(
-              label: tr('Afternoon'),
-              icon: Icons.wb_twilight_outlined,
-              value: _a,
-              unit: widget.item.unit.label,
-              onChanged: (v) => setState(() => _a = v),
-            ),
-            _SlotStepper(
-              label: tr('Night'),
-              icon: Icons.nightlight_outlined,
-              value: _n,
-              unit: widget.item.unit.label,
-              onChanged: (v) => setState(() => _n = v),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(tr('Food timing:'), style: t.titleSmall),
-            const SizedBox(height: AppSpacing.xs),
-            Wrap(
-              spacing: 8,
-              children: [
-                for (final timing in [
-                  MealTiming.beforeFood,
-                  MealTiming.afterFood,
-                  MealTiming.withFood,
-                  MealTiming.anytime,
-                ])
-                  ChoiceChip(
-                    label: Text(timing.label),
-                    selected: _timing == timing,
-                    onSelected: (sel) {
-                      if (sel) setState(() => _timing = timing);
-                    },
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (widget.item.sourceText.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+                  child: Text(
+                    trf('Read as: {n}', {'n': widget.item.sourceText}),
+                    style: t.bodySmall?.copyWith(color: scheme.outline),
                   ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            FilledButton(
-              onPressed: () {
-                widget.item.slotAmounts = {
-                  DaySlot.morning: _m,
-                  DaySlot.afternoon: _a,
-                  DaySlot.night: _n,
-                };
-                widget.item.mealTiming = _timing;
-                Navigator.pop(context, widget.item);
-              },
-              child: Text(tr('Save Changes')),
-            ),
-          ],
+                ),
+              TextField(
+                controller: _nameController,
+                textCapitalization: TextCapitalization.words,
+                style: t.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                decoration: InputDecoration(
+                  labelText: tr('Medicine name'),
+                  border: const OutlineInputBorder(),
+                  suffixIcon: _hit != null
+                      ? Icon(Icons.verified_rounded, color: scheme.primary)
+                      : null,
+                ),
+                onChanged: _search,
+              ),
+              if (_hit != null && _hit!.composition.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    _hit!.composition,
+                    style: t.bodySmall?.copyWith(
+                      color: scheme.outline,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
+              for (final hit in _results)
+                ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.medication_outlined),
+                  title: Text(hit.name),
+                  subtitle: hit.composition.isEmpty
+                      ? null
+                      : Text(
+                          hit.composition,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                  onTap: () => _pick(hit),
+                ),
+              const SizedBox(height: AppSpacing.md),
+              Text(tr('Dose amount per time:'), style: t.titleSmall),
+              const SizedBox(height: AppSpacing.xs),
+              _SlotStepper(
+                label: tr('Morning'),
+                icon: Icons.wb_sunny_outlined,
+                value: _m,
+                unit: widget.item.unit.label,
+                onChanged: (v) => setState(() => _m = v),
+              ),
+              _SlotStepper(
+                label: tr('Afternoon'),
+                icon: Icons.wb_twilight_outlined,
+                value: _a,
+                unit: widget.item.unit.label,
+                onChanged: (v) => setState(() => _a = v),
+              ),
+              _SlotStepper(
+                label: tr('Night'),
+                icon: Icons.nightlight_outlined,
+                value: _n,
+                unit: widget.item.unit.label,
+                onChanged: (v) => setState(() => _n = v),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(tr('Food timing:'), style: t.titleSmall),
+              const SizedBox(height: AppSpacing.xs),
+              Wrap(
+                spacing: 8,
+                children: [
+                  for (final timing in [
+                    MealTiming.beforeFood,
+                    MealTiming.afterFood,
+                    MealTiming.withFood,
+                    MealTiming.anytime,
+                  ])
+                    ChoiceChip(
+                      label: Text(timing.label),
+                      selected: _timing == timing,
+                      onSelected: (sel) {
+                        if (sel) setState(() => _timing = timing);
+                      },
+                    ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              FilledButton(onPressed: _save, child: Text(tr('Save Changes'))),
+            ],
+          ),
         ),
       ),
     );
@@ -654,7 +774,9 @@ class _SlotStepper extends StatelessWidget {
           Expanded(child: Text(label, style: context.textTheme.bodyMedium)),
           IconButton.filledTonal(
             icon: const Icon(Icons.remove, size: 18),
-            onPressed: value > 0 ? () => onChanged((value - 0.5).clamp(0, 10)) : null,
+            onPressed: value > 0
+                ? () => onChanged((value - 0.5).clamp(0, 10))
+                : null,
           ),
           SizedBox(
             width: 44,

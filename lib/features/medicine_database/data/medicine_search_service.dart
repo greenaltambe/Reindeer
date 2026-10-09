@@ -91,6 +91,9 @@ class MedicineSearchService {
     return (words: words, numbers: numbers);
   }
 
+  /// Whether [word] (lowercase) appears in any medicine name or ingredient.
+  bool isKnownWord(String word) => _vocab.containsKey(word);
+
   static bool _isNumeric(String t) {
     final c = t.codeUnitAt(0);
     return c >= 0x30 && c <= 0x39;

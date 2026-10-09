@@ -290,9 +290,7 @@ class _StockForecastCard extends ConsumerWidget {
               stock != null
                   ? '${formatAmount(stock)} ${plan.doseUnit.label}'
                   : '-- ${plan.doseUnit.label}',
-              style: t.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: t.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 2),
             // Daily usage and run-out projection on its own calm line

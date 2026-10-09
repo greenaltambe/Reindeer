@@ -21,12 +21,15 @@ void main() {
       expect(url, 'https://www.1mg.com/search/all?name=Telmisartan%2040mg');
     });
 
-    test('builds Apollo 24/7 search URL correctly', () {
+    test('builds Apollo Pharmacy search URL correctly', () {
       final url = PharmacyStoreService.buildUrl(
-        store: PharmacyStore.apollo247,
+        store: PharmacyStore.apollo,
         query: 'Metformin 500mg',
       );
-      expect(url, 'https://www.apollo247.com/search-medicines/Metformin%20500mg');
+      expect(
+        url,
+        'https://www.apollopharmacy.in/search-medicines/Metformin%20500mg',
+      );
     });
 
     test('builds Netmeds search URL correctly', () {
@@ -34,7 +37,24 @@ void main() {
         store: PharmacyStore.netmeds,
         query: 'Dolo 650',
       );
-      expect(url, 'https://www.netmeds.com/catalogsearch/result/Dolo%20650/all');
+      expect(url, 'https://www.netmeds.com/products?q=Dolo%20650');
+    });
+
+    test('matches the pharmacy search pages for a two-word query', () {
+      String url(PharmacyStore s) =>
+          PharmacyStoreService.buildUrl(store: s, query: 'paracetamol tablets');
+      expect(
+        url(PharmacyStore.tata1mg),
+        'https://www.1mg.com/search/all?name=paracetamol%20tablets',
+      );
+      expect(
+        url(PharmacyStore.apollo),
+        'https://www.apollopharmacy.in/search-medicines/paracetamol%20tablets',
+      );
+      expect(
+        url(PharmacyStore.netmeds),
+        'https://www.netmeds.com/products?q=paracetamol%20tablets',
+      );
     });
 
     test('builds Jan Aushadhi Kendra search URL to Google Maps', () {
@@ -42,7 +62,10 @@ void main() {
         store: PharmacyStore.janAushadhi,
         query: 'Amlodipine',
       );
-      expect(url, 'https://www.google.com/maps/search/Jan+Aushadhi+Kendra+near+me');
+      expect(
+        url,
+        'https://www.google.com/maps/search/Jan+Aushadhi+Kendra+near+me',
+      );
     });
   });
 }

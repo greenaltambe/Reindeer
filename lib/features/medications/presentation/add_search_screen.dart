@@ -193,8 +193,7 @@ class _AddSearchScreenState extends ConsumerState<AddSearchScreen> {
                   borderRadius: AppSpacing.borderRadiusMd,
                 ),
                 leading: CircleAvatar(
-                  backgroundColor:
-                      context.colorScheme.surfaceContainerHighest,
+                  backgroundColor: context.colorScheme.surfaceContainerHighest,
                   child: Icon(
                     Icons.medication_outlined,
                     color: context.colorScheme.onSurface,

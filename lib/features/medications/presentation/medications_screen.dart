@@ -80,8 +80,7 @@ class MedicationsScreen extends ConsumerWidget {
                       dense: true,
                       leading: CircleAvatar(
                         radius: 18,
-                        backgroundColor:
-                            context.colorScheme.tertiaryContainer,
+                        backgroundColor: context.colorScheme.tertiaryContainer,
                         child: Icon(
                           Icons.document_scanner_outlined,
                           color: context.colorScheme.onTertiaryContainer,
@@ -108,8 +107,7 @@ class MedicationsScreen extends ConsumerWidget {
                       dense: true,
                       leading: CircleAvatar(
                         radius: 18,
-                        backgroundColor:
-                            context.colorScheme.primaryContainer,
+                        backgroundColor: context.colorScheme.primaryContainer,
                         child: Icon(
                           Icons.history_edu,
                           color: context.colorScheme.onPrimaryContainer,

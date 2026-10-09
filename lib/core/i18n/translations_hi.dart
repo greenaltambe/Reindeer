@@ -669,20 +669,22 @@ const Map<String, String> hiStrings = {
   'Popular': 'लोकप्रिय',
   'Fast': 'तेज़',
   'Reliable': 'भरोसेमंद',
-  'Note: Reindeer does not sell medicines directly. Tapping opens the pharmacy search in your browser.':
-      'नोट: रेनडियर सीधे दवाएं नहीं बेचता। टैप करने पर आपके ब्राउज़र में फ़ार्मेसी खोज खुल जाएगी।',
+  'Note: Reindeer does not sell medicines directly. Tapping opens the pharmacy search in your browser.': 'नोट: रेनडियर सीधे दवाएं नहीं बेचता। टैप करने पर आपके ब्राउज़र में फ़ार्मेसी खोज खुल जाएगी।',
   "Scan Doctor's Prescription": 'डॉक्टर का पर्चा स्कैन करें',
-  'Take a photo to add all medicines at once.': 'एक फोटो खींचकर सभी दवाएं एक साथ जोड़ें।',
+  'Take a photo to add all medicines at once.':
+      'एक फोटो खींचकर सभी दवाएं एक साथ जोड़ें।',
   'Scanned Prescription': 'स्कैन किया गया पर्चा',
   'Scan another photo': 'दूसरी फोटो स्कैन करें',
   'Reading your prescription...': 'आपका पर्चा पढ़ा जा रहा है...',
-  'Checking medicine names securely on this phone.': 'दवाओं के नाम इसी फोन पर सुरक्षित रूप से जांचे जा रहे हैं।',
+  'Checking medicine names securely on this phone.':
+      'दवाओं के नाम इसी फोन पर सुरक्षित रूप से जांचे जा रहे हैं।',
   'No medicines found': 'कोई दवा नहीं मिली',
-  'Doctor handwriting can sometimes be unclear. Try a closer, well-lit photo, or add medicines directly.':
-      'डॉक्टर की लिखावट कभी-कभी अस्पष्ट हो सकती है। साफ रोशनी में पास से फोटो लें या सीधे नाम टाइप करें।',
+  'Doctor handwriting can sometimes be unclear. Try a closer, well-lit photo, or add medicines directly.': 'डॉक्टर की लिखावट कभी-कभी अस्पष्ट हो सकती है। साफ रोशनी में पास से फोटो लें या सीधे नाम टाइप करें।',
   'Try photo again': 'दोबारा फोटो लें',
-  'Found {n} medicine. Select the ones you want to add:': '{n} दवा मिली। जिन्हें जोड़ना चाहते हैं उन्हें चुनें:',
-  'Found {n} medicines. Select the ones you want to add:': '{n} दवाएं मिलीं। जिन्हें जोड़ना चाहते हैं उन्हें चुनें:',
+  'Found {n} medicine. Select the ones you want to add:':
+      '{n} दवा मिली। जिन्हें जोड़ना चाहते हैं उन्हें चुनें:',
+  'Found {n} medicines. Select the ones you want to add:':
+      '{n} दवाएं मिलीं। जिन्हें जोड़ना चाहते हैं उन्हें चुनें:',
   'Add {n} medicine to Reindeer': '{n} दवा रेनडियर में जोड़ें',
   'Add {n} medicines to Reindeer': '{n} दवाएं रेनडियर में जोड़ें',
   'Added {n} medicine from prescription': 'पर्चे से {n} दवा जोड़ी गई',
@@ -697,10 +699,12 @@ const Map<String, String> hiStrings = {
   'Use phone camera to take photo': 'फोटो लेने के लिए फोन कैमरे का उपयोग करें',
   'Choose from gallery': 'गैलरी से चुनें',
   'Pick an existing photo or scan': 'पहले से ली गई फोटो या स्कैन चुनें',
-  'Take a clear photo of the prescription paper or slip.': 'पर्चे के कागज या पर्ची की साफ फोटो लें।',
+  'Take a clear photo of the prescription paper or slip.':
+      'पर्चे के कागज या पर्ची की साफ फोटो लें।',
   'What would you like to scan?': 'आप क्या स्कैन करना चाहते हैं?',
   "Doctor's Prescription": 'डॉक्टर का पर्चा',
-  'Scan full prescription slip with multiple medicines': 'कई दवाओं वाला पूरा पर्चा स्कैन करें',
+  'Scan full prescription slip with multiple medicines':
+      'कई दवाओं वाला पूरा पर्चा स्कैन करें',
   'Medicine Strip or Box': 'दवा का पत्ता या डिब्बा',
   'Take a photo of a single medicine package': 'दवा के एक पैकेट की फोटो लें',
   'Scan prescription or strip': 'पर्चा या पत्ता स्कैन करें',
@@ -708,8 +712,11 @@ const Map<String, String> hiStrings = {
   'Express delivery from Apollo Pharmacy': 'अपोलो फार्मेसी से तेज़ डिलीवरी',
   'Trusted online chronic medicine pharmacy': 'ऑनलाइन भरोसेमंद फार्मेसी',
   'Find Jan Aushadhi generic store': 'जन औषधि जेनेरिक स्टोर खोजें',
-  'Government Jan Aushadhi stores offer genuine generic medicines at up to 80% discount.':
-      'सरकारी जन औषधि केंद्र 80% तक की छूट पर असली जेनेरिक दवाएं प्रदान करते हैं।',
+  'Government Jan Aushadhi stores offer genuine generic medicines at up to 80% discount.': 'सरकारी जन औषधि केंद्र 80% तक की छूट पर असली जेनेरिक दवाएं प्रदान करते हैं।',
   'Government Jan Aushadhi stores have the same salt ({n}) at a much lower price.':
       'सरकारी जन औषधि केंद्रों पर यही साल्ट ({n}) बहुत कम कीमत पर मिलता है।',
+  'Not found in medicine list. Tap edit to check the name.':
+      'दवा सूची में नहीं मिली। नाम जांचने के लिए बदलें दबाएं।',
+  'Read as: {n}': 'पढ़ा गया: {n}',
+  'Edit medicine': 'दवा बदलें',
 };

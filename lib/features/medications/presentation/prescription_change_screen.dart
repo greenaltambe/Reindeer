@@ -131,9 +131,7 @@ class _PrescriptionChangeScreenState
         ),
         const SizedBox(height: AppSpacing.md),
         FilledButton.icon(
-          style: FilledButton.styleFrom(
-            minimumSize: const Size.fromHeight(52),
-          ),
+          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
           onPressed: () => setState(() => _reviewMode = true),
           icon: const Icon(Icons.compare_arrows),
           label: Text(tr('Review What Changed')),
