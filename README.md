@@ -1,7 +1,8 @@
 # Reindeer 🦌
 
 An India-focused, **local-first medicine reminder** for Android, built with Flutter.
-No account, no server: everything stays on the phone.
+No account needed: your data stays on the phone. The only thing that ever leaves it is
+the optional **family alerts** feature, and only after you link a caretaker.
 
 > Reindeer is a reminder tool. It does not give medical advice and does not check
 > doses or interactions. Always follow your doctor's prescription.
@@ -14,10 +15,18 @@ No account, no server: everything stays on the phone.
   how long, what it is for, stock. Big tiles and +/- buttons, so little typing.
 - **Meal-based reminders.** "After breakfast" instead of only a clock time, with
   Taken / Skip / Snooze buttons on the notification.
+- **Scan and voice entry.** Photograph a strip, bottle or whole prescription (text is read
+  on the phone), or say the medicine aloud in English, Hindi or Marathi.
 - **Today screen** with a week calendar, the day's doses grouped by time, health-reading
   reminders and a low-stock warning.
-- **Progress.** Adherence over 7 or 30 days, per medicine, plus a summary you can copy
-  and send to your doctor.
+- **Why-aware misses.** When a dose is missed or skipped, pick a reason (forgot, ran out,
+  side effect, felt fine, cost, fasting/travel) and get matching guidance.
+- **Refills.** Run-out forecast from stock and daily use, low-stock warnings, "I bought
+  more", Jan Aushadhi generic hints and one-tap links to online pharmacies.
+- **Doctor changed my medicines.** A wizard that shows what started, changed or stopped,
+  while keeping past history intact.
+- **Reports.** Adherence over 7 or 30 days, a 30-day calendar, miss reasons, and a
+  one-page summary you can share with your doctor.
 - **Health tab.** Weight, blood pressure, blood sugar, body fat and pulse, with charts,
   history and optional measurement reminders.
 - **Conditions list** (built from the medicine data) to say what each medicine is for.
@@ -33,26 +42,39 @@ No account, no server: everything stays on the phone.
 - **Missed-dose guidance** and a one-tap **Tell my family** message (via the share sheet).
 - **Unusual-reading flags** for blood pressure, sugar, pulse and weight (a general guide, not a diagnosis).
 - **Share the doctor summary** to WhatsApp, email or any app.
+- **Family alerts (optional).** Link caretakers who get a push notification when a dose is
+  missed, you press Help, ask for medicines or your battery is low. See
+  [docs/FAMILY_SHARING.md](docs/FAMILY_SHARING.md). **Note:** these caretaker features do
+  not work in the release build, because the Firebase project was downgraded to the free
+  tier (the Cloud Functions backend needs the Blaze plan). It will be upgraded to Blaze later
+  if needed.
+- **TB care (DOTS)**, a **home-screen widget**, **backup/restore**, loud repeating reminders
+  and English / Hindi / Marathi throughout.
 - **You** tab for personal details, conditions and meal times; app settings behind a gear.
 - Smooth page, tab and list animations.
 - A small reindeer mascot with a few easter eggs.
 
 ## Getting started
 
-Requirements: Flutter (Dart 3.x), Python 3, an Android phone or emulator.
+Requirements: Flutter (Dart 3.x), an Android phone or emulator. Python 3 is only needed to
+rebuild the medicine database; Node 22 and the Firebase CLI only for the family-alerts backend.
 
 ```bash
 flutter pub get
 
-# One-time: build the bundled medicine database (see docs/DATA.md)
-#   put Extensive_A_Z_medicines_dataset_of_India.csv in data/ first
-python3 tools/build_medicine_db.py
-
-flutter run
+# Firebase key (never committed): copy env.example.json to env.json and fill it in,
+# and put your google-services.json in android/app/
+flutter run --dart-define-from-file=env.json
 ```
 
-The build script writes `assets/db/medicines.db.gz` (the file the app bundles) and
-`assets/db/medicines.db` (used by the tests). Both are git-ignored because of their size.
+The bundled `assets/db/medicines.db.gz` is committed. To rebuild it (see docs/DATA.md),
+put `Extensive_A_Z_medicines_dataset_of_India.csv` in `data/` and run
+`python3 tools/build_medicine_db.py`; this also writes `assets/db/medicines.db`, which the
+search tests use and which is git-ignored.
+
+Without the Firebase files the local features still work, but family alerts will not.
+Backend setup and deployment are in [docs/FAMILY_SHARING.md](docs/FAMILY_SHARING.md).
+Family alerts are currently unavailable in release builds (see the note under features).
 
 Checks:
 
@@ -60,6 +82,7 @@ Checks:
 dart format .
 flutter analyze
 flutter test
+(cd functions && npm test)   # family-alert wording
 ```
 
 Reminders need the notification and exact-alarm permissions. If they arrive late, set the
@@ -71,21 +94,25 @@ reminder check and a test notification.
 ```text
 lib/
   core/        database, router, theme, utilities
-  features/    adherence, conditions, health, medications,
-               medicine_database, onboarding, profile, progress,
-               reminders, settings, today
+  features/    adherence, allergy, backup, care, conditions, health,
+               medications, medicine_database, onboarding, profile,
+               progress, refills, reminders, routine, safety, settings,
+               symptoms, tb, today, widget
   shared/      reusable widgets
+functions/     Firebase Cloud Functions (family alerts) and their tests
 tools/         Python: build the medicine database, regenerate icons
 test/          domain, search-parity and widget tests
-docs/          architecture, data, user guide, roadmap, specification
+docs/          architecture, data, user guide, family sharing, roadmap, specification
+firestore.rules, firebase.json   Firestore security rules and Firebase config
 ```
 
 More detail: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md),
 [docs/DATA.md](docs/DATA.md), [docs/USER_GUIDE.md](docs/USER_GUIDE.md),
-[docs/ROADMAP.md](docs/ROADMAP.md).
+[docs/FAMILY_SHARING.md](docs/FAMILY_SHARING.md), [docs/ROADMAP.md](docs/ROADMAP.md).
+Build history is in [IMPLEMENTATION_PROGRESS.md](IMPLEMENTATION_PROGRESS.md).
 
 ## Status
 
-v1.0.0, a college project. Android only. Medicine data comes from public lists of
+A college project. Android only. Medicine data comes from public lists of
 unverified provenance and may be incomplete: treat it as demo data and check against the
 strip or prescription.

@@ -3,6 +3,8 @@
 **First launch.** Six short pages: welcome, name, birth year, health conditions, meal
 times, and reminder permission. Everything except the welcome and meal times can be skipped.
 
+**Tabs.** Today, Medicines, Refills, Reports and You. Health readings are under Reports.
+
 **Allergies and Medical ID.** On the *You* tab, add allergies (common groups or your own).
 When you add a medicine with a matching ingredient, Reindeer warns you first. *Medical ID* shows
 allergies, conditions and medicines on one page you can share.
@@ -89,3 +91,18 @@ You tab > TB care (DOTS) > Start TB treatment. Choose the start date, weight ban
 - After a missed dose, one tap sends the supporter a message; after 2 missed days in a row a warning tells the patient to contact the TB centre.
 - The screen also shows progress, adherence and how many doses were watched, usual check-up dates, safety notes, and a report to share with the health worker.
 - Data stays on the phone and is included in backups.
+
+## Refills
+The Refills tab shows how many days of stock are left for each medicine. Tap *I bought more* to update it, or *Buy* to open an online pharmacy or find a Jan Aushadhi store (cheaper generic equivalents are suggested where known).
+
+## Missed doses: why?
+When you skip or miss a dose, pick a reason (forgot, ran out, side effect, felt fine, cost, fasting/travel). Reindeer shows matching help, and the reasons appear in the doctor report.
+
+## Doctor changed my medicines
+On the Medicines tab, use this to enter the new prescription. Reindeer shows what was started, adjusted or stopped. Earlier history is kept as it was.
+
+## Scanning a whole prescription
+Use the scan option on Add medicine to photograph a prescription. Review each line it found before adding anything.
+
+## Family alerts (optional)
+You tab > Family. As a patient, *Add a caretaker* gives a code to share; the caretaker enters it under *Join as caretaker*. Caretakers are notified when a dose is not marked taken, when you press **Help**, ask for medicines, or your battery is low, and can reply with a message. Nothing is shared until you link someone, and you can remove them at any time. Setup for developers: [FAMILY_SHARING.md](FAMILY_SHARING.md).

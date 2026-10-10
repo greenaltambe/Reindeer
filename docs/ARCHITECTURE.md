@@ -1,7 +1,10 @@
 # Architecture (v2)
 
-Flutter + Material 3, Riverpod for state, go_router for navigation, sqflite for local-only storage.
-Everything runs locally on the device; there is no backend server or cloud dependency. Fully compliant with India's DPDP Act.
+Flutter + Material 3, Riverpod for state, go_router for navigation, sqflite for storage.
+The app is local-first: all medicines, doses and readings live in SQLite on the device and
+nothing is uploaded by default. The one exception is optional **family alerts**
+(`features/care`, Firebase), which only sends dose status, help requests and similar events
+after the patient links a caretaker. See [FAMILY_SHARING.md](FAMILY_SHARING.md).
 
 ## Layers
 
@@ -10,6 +13,21 @@ Each feature folder follows:
 - `data`: SQLite repositories, migrations, and query services.
 - `application`: State management, Riverpod providers, and coordinated actions.
 - `presentation`: Senior-friendly UI screens, high-contrast cards, and modal bottom sheets.
+
+## Family alerts backend
+
+Firebase (anonymous Auth, Firestore in asia-south1, Cloud Functions in `functions/`, FCM).
+`CareSync` uploads changed doses; scheduled and triggered functions send push alerts.
+Security rules are in `firestore.rules`. The Android API key is supplied at build time with
+`--dart-define-from-file=env.json` (template: `env.example.json`) and `google-services.json`
+is git-ignored; CI writes both from secrets (`.github/workflows/release.yml`).
+
+## Other features
+
+Home-screen widget (`features/widget`, Android `ReindeerWidgetProvider`), backup/restore
+(`features/backup`), TB DOTS programme (`features/tb`), routine learning (`features/routine`),
+prescription/strip scanning with on-device ML Kit OCR and voice input (`features/medications`),
+pharmacy links (`features/refills`), and Hindi/Marathi strings (`core/i18n`).
 
 ## Two Databases
 
@@ -72,4 +90,6 @@ The app shell organizes chronic disease management around the chronic care loop:
 2. **Medicines (`/medicines`)**: Current regimen, generic salt compositions, schedule adjustments, pause/resume, and "Doctor changed my medicines" wizard.
 3. **Refills (`/refills`)**: Stock counts, consumption rates, run-out forecasts, Jan Aushadhi generic hints, and "I bought more" quick entries.
 4. **Reports (`/reports`)**: One-page doctor report, 30-day visual adherence calendar, missed reasons breakdown, and access to Health Vitals & Readings (`/health`).
-5. **You (`/you`)**: Profile, meal anchors, OEM battery killer guidance, Language switcher (English, Hindi, Marathi), Medical ID, DPDP local data export & purge, and optional TB supporter mode.
+5. **You (`/you`)**: Profile, meal anchors, OEM battery killer guidance, Language switcher (English, Hindi, Marathi), Medical ID, DPDP local data export & purge, optional TB supporter mode, and Family (caretaker linking).
+
+Caretakers also have a **Care** home (`/care`) listing the patients they follow.
