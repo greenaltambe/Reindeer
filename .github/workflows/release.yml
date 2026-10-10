@@ -31,6 +31,14 @@ jobs:
             exit 1
           fi
 
+      - name: Write Firebase secrets
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+          FIREBASE_ANDROID_API_KEY: ${{ secrets.FIREBASE_ANDROID_API_KEY }}
+        run: |
+          echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
+          printf '{"FIREBASE_ANDROID_API_KEY":"%s"}' "$FIREBASE_ANDROID_API_KEY" > env.json
+
       - name: Install dependencies
         run: flutter pub get
 
@@ -41,7 +49,7 @@ jobs:
         run: flutter test
 
       - name: Build APK
-        run: flutter build apk --release
+        run: flutter build apk --release --dart-define-from-file=env.json
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

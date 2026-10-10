@@ -61,3 +61,7 @@ app.*.map.json
 firestore-debug.log
 ui-debug.log
 firebase-debug.log
+
+# Secrets (never commit). Templates: env.example.json
+/env.json
+/android/app/google-services.json

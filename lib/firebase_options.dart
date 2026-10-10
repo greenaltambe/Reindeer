@@ -52,8 +52,14 @@ class DefaultFirebaseOptions {
     }
   }
 
+  /// Supplied at build time, never committed:
+  /// `flutter run --dart-define-from-file=env.json` (see env.example.json).
+  static const String _androidApiKey = String.fromEnvironment(
+    'FIREBASE_ANDROID_API_KEY',
+  );
+
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDGwP8MZlpacQBOwmk8_9DuWJYM2WKuAAI',
+    apiKey: _androidApiKey,
     appId: '1:116081977272:android:5456b402bba5ce3619514d',
     messagingSenderId: '116081977272',
     projectId: 'reindeer-349e4',
