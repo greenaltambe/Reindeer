@@ -59,10 +59,12 @@ class MissedDoseCard extends ConsumerWidget {
               children: [
                 Icon(Icons.schedule, color: scheme.onTertiaryContainer),
                 const SizedBox(width: AppSpacing.xs),
-                Text(
-                  g.headline,
-                  style: t.titleMedium?.copyWith(
-                    color: scheme.onTertiaryContainer,
+                Expanded(
+                  child: Text(
+                    g.headline,
+                    style: t.titleMedium?.copyWith(
+                      color: scheme.onTertiaryContainer,
+                    ),
                   ),
                 ),
               ],
