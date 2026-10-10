@@ -38,9 +38,17 @@ jobs:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
         run: |
-          echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
+          # Accepts the raw JSON, or base64 of it (stray spaces/quotes are ignored).
+          if [[ "$GOOGLE_SERVICES_JSON" == \{* ]]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+          else
+            printf '%s' "$GOOGLE_SERVICES_JSON" | tr -d ' \t\r\n"' | base64 -d > android/app/google-services.json
+          fi
+          python3 -c "import json; json.load(open('android/app/google-services.json'))" \
+            || { echo "::error::GOOGLE_SERVICES_JSON secret is not valid JSON/base64"; exit 1; }
           printf '{"FIREBASE_ANDROID_API_KEY":"%s"}' "$FIREBASE_ANDROID_API_KEY" > env.json
-          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          printf '%s' "$KEYSTORE_BASE64" | tr -d ' \t\r\n"' | base64 -d > "$RUNNER_TEMP/release.jks" \
+            || { echo "::error::KEYSTORE_BASE64 secret is not valid base64"; exit 1; }
           printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=reindeer\nstoreFile=%s\n' \
             "$KEYSTORE_PASSWORD" "$KEYSTORE_PASSWORD" "$RUNNER_TEMP/release.jks" > android/key.properties
 
